@@ -199,6 +199,7 @@ label input,label select,label textarea{width:100%}
     <button role="tab" data-tab="tydzien" aria-selected="false">Tydzień</button>
     <button role="tab" data-tab="zlecenia" aria-selected="false">Zlecenia</button>
     <button role="tab" data-tab="podwykonawcy" aria-selected="false">Podwykonawcy</button>
+    <button role="tab" data-tab="dostep" aria-selected="false" id="tabDostep" hidden>Dostęp</button>
   </nav>
 
   <section id="v-pulpit" class="stack">
@@ -288,6 +289,13 @@ label input,label select,label textarea{width:100%}
       <div class="tag-list" id="rodzList"></div>
     </div>
   </section>
+
+  <section id="v-dostep" class="panel" hidden>
+    <div class="hd"><h2>Dostęp do Kooperacji</h2><span class="small">konta biura z Truck App</span></div>
+    <div class="tablebox"><table><thead><tr><th>Osoba</th><th>Login</th><th>Konto w Truck App</th><th>Kooperacje</th></tr></thead><tbody id="dRows"></tbody></table></div>
+    <div class="empty" id="dEmpty" hidden></div>
+    <p class="small" style="margin:0;padding:10px 14px 12px">Nowe konto biura zakładasz w Truck App (Dostęp do aplikacji). Dostaje ono Kooperacje automatycznie, a tutaj możesz je wyłączyć. Kierowcy nie mają dostępu do Kooperacji. Zablokowanie konta w Truck App odcina też Kooperacje.</p>
+  </section>
 </div>
 
 <dialog id="dlgZ">
@@ -345,7 +353,7 @@ label input,label select,label textarea{width:100%}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, runTransaction, serverTimestamp, getDocs, query, orderBy, limit, writeBatch, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, collection, doc, onSnapshot, runTransaction, serverTimestamp, getDocs, query, where, orderBy, limit, writeBatch, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /* ===== Firebase – ten sam projekt co Truck App ===== */
 const firebaseConfig = {
@@ -420,7 +428,7 @@ function show(view, msg){
   $("vLogin").hidden = view!=="login"; $("vApp").hidden = view!=="app"; $("vMsg").hidden = view!=="msg";
   if (view==="msg"){ $("msgText").textContent = msg; $("msgOut").hidden = !auth.currentUser; }
 }
-const TABS=["pulpit","kalendarz","tydzien","zlecenia","podwykonawcy"];
+const TABS=["pulpit","kalendarz","tydzien","zlecenia","podwykonawcy","dostep"];
 let tab="pulpit";
 function setTab(t){ tab=TABS.includes(t)?t:"pulpit"; for(const k of TABS) $("v-"+k).hidden = k!==tab;
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===tab));
@@ -440,7 +448,38 @@ function render(){
   $("who").innerHTML = `<span>Zalogowany: <b>${esc(me.nazwa||me.login)}</b>${isAdmin?" · administrator":""}</span>`;
   $("btnNew").hidden=!canWrite; $("btnNewSup").hidden=!isAdmin; $("fRodz").hidden=!isAdmin; $("sHint").hidden=isAdmin;
   $("btnSeed").hidden = !(isAdmin && P.length===0);
-  renderPulpit(); renderCal(); renderWeek(); renderZ(); renderSup();
+  $("tabDostep").hidden = !isAdmin;
+  if (!isAdmin && tab==="dostep") setTab("pulpit");
+  renderPulpit(); renderCal(); renderWeek(); renderZ(); renderSup(); renderDostep();
+}
+
+/* ---------- dostęp (administrator): pole uzytkownicy/{uid}.kooperacje ---------- */
+let K = [];   // konta biura z Truck App
+function renderDostep(){
+  if (!isAdmin) return;
+  const list=K.slice().sort((a,b)=>String(a.nazwa||a.login).localeCompare(String(b.nazwa||b.login),"pl"));
+  $("dRows").innerHTML=list.map(k=>{
+    const adm = k.uid===adminUid, ma = adm || k.kooperacje!==false;
+    const ctl = adm? `<span class="pill st-Odebrane">Tak · administrator</span>`
+      : `<label style="display:flex;gap:8px;align-items:center;color:var(--fg);font-size:13px"><input type="checkbox" data-dost="${k.uid}" ${ma?"checked":""}> ${ma?"Ma dostęp":"Brak dostępu"}</label>`;
+    return `<tr class="${k.aktywny===false?"closed":""}"><td class="strong">${esc(k.nazwa||k.login)}${k.uid===me.uid?' <span class="small">(Ty)</span>':""}</td><td class="mono">${esc(k.login)}</td>
+      <td>${k.aktywny===false?'<span class="pill st-Anulowane">Zablokowane</span>':'<span class="pill st-W">Aktywne</span>'}</td><td>${ctl}</td></tr>`;
+  }).join("");
+  const e=$("dEmpty"); e.hidden=!!list.length; e.innerHTML="<span>Wczytywanie kont…</span>";
+}
+document.addEventListener("change", async e=>{
+  const c=e.target.closest("input[data-dost]"); if(!c || !isAdmin) return;
+  const uid=c.dataset.dost, on=c.checked, k=K.find(x=>x.uid===uid);
+  c.disabled=true;
+  try{ await updateDoc(doc(db,"uzytkownicy",uid), {kooperacje:on}); toast((k?.nazwa||k?.login||"Konto")+(on?" – ma dostęp do Kooperacji":" – nie ma już dostępu do Kooperacji")); }
+  catch(x){ c.checked=!on; failed(x); }
+  finally{ c.disabled=false; }
+});
+let kontaUnsub=null;
+function watchKonta(){
+  if (isAdmin && !kontaUnsub){
+    kontaUnsub=onSnapshot(query(collection(db,"uzytkownicy"), where("rola","==","biuro")), s=>{ K=s.docs.map(d=>({uid:d.id,...d.data()})); renderDostep(); }, x=>console.warn(x));
+  } else if (!isAdmin && kontaUnsub){ kontaUnsub(); kontaUnsub=null; K=[]; }
 }
 
 function renderPulpit(){
@@ -798,21 +837,32 @@ function startData(){
 let userUnsub=null, metaUnsub=null, adminUid="";
 onAuthStateChanged(auth, u=>{
   stopSubs(); if(userUnsub){userUnsub();userUnsub=null;} if(metaUnsub){metaUnsub();metaUnsub=null;}
+  if(kontaUnsub){kontaUnsub();kontaUnsub=null;} K=[];
   me=null; Z=[]; P=[];
   if(!u){ show("login"); return; }
   show("msg","Sprawdzam uprawnienia…");
-  let started=false;
-  metaUnsub=onSnapshot(doc(db,"meta","init"), s=>{ adminUid = s.exists()? (s.data().admin||"") : ""; if(me){ isAdmin = adminUid===me.uid; render(); } }, ()=>{});
-  userUnsub=onSnapshot(doc(db,"uzytkownicy",u.uid), s=>{
-    const k=s.exists()? s.data() : null;
-    if(!k){ if(s.metadata.fromCache) return; stopSubs(); started=false; show("msg","To konto nie ma dostępu do aplikacji."); return; }
-    if(k.rola!=="biuro"){ stopSubs(); started=false; show("msg","Kooperacje są dostępne tylko dla kont biura. Konto kierowcy nie ma tu dostępu."); return; }
-    if(k.aktywny===false){ stopSubs(); started=false; show("msg","To konto jest zablokowane w Truck App."); return; }
+  let started=false, konto=null, metaOk=false, userOk=false;
+  const deny=m=>{ stopSubs(); started=false; me=null; isAdmin=false; watchKonta(); show("msg",m); };
+  // decyzja o dostępie, gdy znamy i konto, i administratora
+  const decide=()=>{
+    if(!metaOk || !userOk) return;
+    const k=konto;
+    if(!k) return deny("To konto nie ma dostępu do aplikacji.");
+    if(k.rola!=="biuro") return deny("Kooperacje są dostępne tylko dla kont biura.");
+    if(k.aktywny===false) return deny("To konto jest zablokowane w Truck App.");
+    isAdmin = adminUid===u.uid;
+    if(k.kooperacje===false && !isAdmin) return deny("To konto nie ma dostępu do Kooperacji. Dostęp nadaje administrator w zakładce Dostęp.");
     me={uid:u.uid, login:k.login||"", nazwa:k.nazwa||k.login||""};
-    isAdmin = adminUid===u.uid; canWrite=true;
+    canWrite=true;
     show("app");
     if(!started){ started=true; startData(); }
+    watchKonta();
     render();
+  };
+  metaUnsub=onSnapshot(doc(db,"meta","init"), s=>{ adminUid = s.exists()? (s.data().admin||"") : ""; metaOk=true; decide(); }, ()=>{ metaOk=true; decide(); });
+  userUnsub=onSnapshot(doc(db,"uzytkownicy",u.uid), s=>{
+    if(!s.exists() && s.metadata.fromCache) return;
+    konto=s.exists()? s.data() : null; userOk=true; decide();
   }, x=>{ show("msg","Nie udało się sprawdzić konta: "+(x&&x.code||x)); });
 });
 </script>
