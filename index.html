@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kooperacje</title>
+<meta name="description" content="Kalendarz odbiorów od podwykonawców – pulpit, kalendarz, plan tygodnia, zlecenia.">
+<meta name="theme-color" content="#1f5f7a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: zakładki jak arkusze (Pulpit, Kalendarz, Tydzień, Zlecenia, Podwykonawcy); kolor = podwykonawca, czerwień = po terminie */
+:root{
+  --bg:#f2f3f1; --surface:#ffffff; --sunk:#e7e9e5; --line:#d2d6cf; --fg:#1b2320; --muted:#5b6660;
+  --accent:#1f5f7a; --accent-fg:#ffffff; --accent-soft:#dbe9ef;
+  --ok:#2e7a3b; --ok-soft:#e0f0e2; --warn:#946000; --warn-soft:#faeed4; --bad:#b0332a; --bad-soft:#f7e0dd; --idle-soft:#e7e9e5;
+  --c0:#2d6fb0; --c1:#c0621b; --c2:#3c8a4a; --c3:#8a4fb0; --c4:#b03a6a; --c5:#1f8a8a; --c6:#8a7a1f; --c7:#5b6660;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#131816; --surface:#1b221f; --sunk:#222a27; --line:#33403a; --fg:#e3e8e5; --muted:#96a29c;
+  --accent:#6fb6d3; --accent-fg:#0c1a20; --accent-soft:#1c3540;
+  --ok:#7cc488; --ok-soft:#1c3221; --warn:#e2b45a; --warn-soft:#382d14; --bad:#ef8a80; --bad-soft:#3d201c; --idle-soft:#28302d;
+  --c0:#6ea8e0; --c1:#e69a5c; --c2:#7cc488; --c3:#bf94e0; --c4:#e687ad; --c5:#5fc4c4; --c6:#d1c060; --c7:#96a29c;
+  color-scheme:dark}}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
+[hidden]{display:none!important}
+.wrap{max-width:1320px;margin:0 auto;padding-block:18px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-display);font-weight:700;font-size:27px;letter-spacing:.01em;margin:0;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:17px;margin:0;letter-spacing:.01em}
+.sub{color:var(--muted);margin:2px 0 0;font-variant-numeric:tabular-nums}
+.who{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.who b{color:var(--fg)}
+nav.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav.tabs button{font:600 14px var(--f-body);background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:9px 14px;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent)}
+.btn{font:600 14px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:6px;padding:7px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.sm{padding:3px 9px;font-size:12.5px}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,nav.tabs button:focus-visible,.ev:focus-visible,.day:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.notice{background:var(--warn-soft);color:var(--warn);border-radius:6px;padding:8px 12px;font-size:13px}
+.notice.bad{background:var(--bad-soft);color:var(--bad)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;min-width:0}
+.panel>.hd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--line)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select,textarea{font:14px var(--f-body);color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 9px;min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;gap:2px}
+.lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.kpi .val{font-family:var(--f-display);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi .hint{font-size:12.5px;color:var(--muted)}
+.kpi.alert .val{color:var(--bad)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:1040px){.cols{grid-template-columns:minmax(0,1fr)}}
+.stack{display:grid;gap:16px;min-width:0}
+.tablebox{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--sunk)}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tbody tr.click{cursor:pointer}
+tbody tr.click:hover td{background:var(--sunk)}
+tr.late td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
+tr.closed td{color:var(--muted)}
+.wide{min-width:960px}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.small{font-size:12.5px;color:var(--muted)}
+.strong{font-weight:600}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.st-Zlecone{background:var(--idle-soft);color:var(--fg)}
+.st-W{background:var(--accent-soft);color:var(--accent)}
+.st-Gotowe{background:var(--warn-soft);color:var(--warn)}
+.st-Odebrane{background:var(--ok-soft);color:var(--ok)}
+.st-Anulowane{background:var(--idle-soft);color:var(--muted);text-decoration:line-through}
+.alert-late{color:var(--bad);font-weight:600;white-space:nowrap}
+.alert-today{color:var(--warn);font-weight:600;white-space:nowrap}
+.alert-soon{color:var(--accent);white-space:nowrap}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:0}
+.empty{padding:32px 16px;text-align:center;color:var(--muted);display:grid;gap:8px;justify-items:center}
+.empty strong{color:var(--fg);font-size:15px}
+.sup-card{padding:11px 14px;border-bottom:1px solid var(--line);display:grid;gap:3px}
+.sup-card:last-child{border-bottom:0}
+.sup-card .nm{font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.sup-card .nums{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.sup-card .nums b{color:var(--fg)}
+.sup-card .nums b.bad{color:var(--bad)}
+.chart{padding:12px 14px}
+.chart svg{display:block;width:100%;height:auto;max-width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted);padding:0 14px 12px}
+.cal{display:grid;grid-template-columns:44px repeat(5,minmax(0,1fr));border-top:1px solid var(--line)}
+.cal .h{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:7px 8px;background:var(--sunk);border-bottom:1px solid var(--line)}
+.cal .wk{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--line);background:var(--sunk)}
+.day{border-left:1px solid var(--line);border-bottom:1px solid var(--line);min-height:96px;padding:6px;display:flex;flex-direction:column;gap:4px;cursor:pointer;min-width:0;background:var(--surface)}
+.day:hover{background:var(--sunk)}
+.day.out{background:var(--bg);color:var(--muted)}
+.day.today{box-shadow:inset 0 0 0 2px var(--accent)}
+.day .dn{display:flex;justify-content:space-between;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.day.today .dn b{color:var(--accent)}
+.ev{display:block;text-align:left;width:100%;font:12.5px/1.3 var(--f-body);color:var(--fg);background:var(--sunk);border:0;border-left:3px solid var(--c7);border-radius:3px;padding:3px 5px;cursor:pointer;overflow-wrap:anywhere}
+.ev.late{color:var(--bad);font-weight:600}
+.ev.done{opacity:.55}
+.ev .we{font-size:11px;color:var(--muted)}
+@media (max-width:700px){
+  .cal{grid-template-columns:minmax(0,1fr)}
+  .cal .h,.cal .wk{display:none}
+  .day{border-left:0;min-height:0}
+  .day.out,.day.blank{display:none}
+}
+.mail{display:grid;gap:8px;padding:12px 14px;border-top:1px solid var(--line);background:var(--sunk)}
+.mail .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mail code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:2px 6px;user-select:all;overflow-wrap:anywhere}
+.dayhead td{background:var(--sunk);font-weight:600;font-size:12.5px;letter-spacing:.03em}
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);padding:0;width:min(660px,calc(100vw - 32px));max-height:calc(100vh - 32px)}
+dialog::backdrop{background:rgb(10 15 13 / .45)}
+dialog form{display:grid;gap:14px;padding:18px}
+dialog h3{font-family:var(--f-display);font-size:20px;margin:0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}
+.grid .full{grid-column:1/-1}
+@media (max-width:560px){.grid{grid-template-columns:minmax(0,1fr)}}
+label{display:grid;gap:4px;font-size:12.5px;color:var(--muted);font-weight:500}
+label input,label select,label textarea{width:100%}
+.colors{display:flex;gap:6px;flex-wrap:wrap}
+.colors label{display:block}
+.colors input{position:absolute;opacity:0;width:1px;height:1px}
+.colors span{display:block;width:26px;height:26px;border-radius:5px;border:2px solid transparent;cursor:pointer}
+.colors input:checked+span{border-color:var(--fg)}
+.colors input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.foot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.foot .grow{flex:1}
+.err{color:var(--bad);font-size:13px}
+.conflict{background:var(--warn-soft);color:var(--warn);border-radius:6px;padding:10px 12px;font-size:13px;display:grid;gap:8px}
+.conflict .toolbar .btn{color:var(--fg)}
+.audit{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;display:grid;gap:6px}
+.audit ul{margin:0;padding:0;list-style:none;display:grid;gap:4px;max-height:180px;overflow:auto}
+.audit li{overflow-wrap:anywhere}
+.audit li b{color:var(--fg);font-weight:600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:6px;font-weight:500;z-index:20;max-width:calc(100vw - 32px)}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;padding:12px 14px}
+.tag{display:inline-flex;align-items:center;gap:6px;background:var(--sunk);border-radius:999px;padding:3px 6px 3px 11px;font-size:13px}
+.tag button{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;line-height:1;padding:0 4px}
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+.login form{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:24px;display:grid;gap:14px;width:min(380px,100%)}
+.login h1{font-size:24px}
+</style>
+</head>
+<body>
+
+<!-- LOGOWANIE -->
+<section class="login" id="vLogin" hidden>
+  <form id="fLogin" novalidate>
+    <div><h1>Kooperacje</h1><p class="sub">Zaloguj się kontem biura z Truck App.</p></div>
+    <label>Login<input id="lLogin" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+    <label>Hasło<input id="lPass" type="password" autocomplete="current-password" required></label>
+    <div class="err" id="lErr" hidden></div>
+    <button class="btn primary" type="submit" id="lBtn">Zaloguj</button>
+  </form>
+</section>
+
+<!-- BRAK DOSTĘPU / START -->
+<section class="login" id="vMsg">
+  <div style="display:grid;gap:12px;justify-items:center;text-align:center;max-width:420px">
+    <h1>Kooperacje</h1>
+    <p class="sub" id="msgText">Uruchamianie…</p>
+    <button class="btn" type="button" id="msgOut" hidden>Wyloguj</button>
+  </div>
+</section>
+
+<div class="wrap" id="vApp" hidden>
+  <header class="top">
+    <div>
+      <h1>Kalendarz odbiorów kooperacji</h1>
+      <p class="sub" id="stan">&nbsp;</p>
+    </div>
+    <div class="toolbar">
+      <span class="who" id="who"></span>
+      <button class="btn sm" type="button" id="btnOut">Wyloguj</button>
+      <button class="btn primary" id="btnNew" type="button">+ Nowe zlecenie</button>
+    </div>
+  </header>
+  <div class="notice" id="notice" hidden></div>
+
+  <nav class="tabs" role="tablist" aria-label="Widoki">
+    <button role="tab" data-tab="pulpit" aria-selected="true">Pulpit</button>
+    <button role="tab" data-tab="kalendarz" aria-selected="false">Kalendarz</button>
+    <button role="tab" data-tab="tydzien" aria-selected="false">Tydzień</button>
+    <button role="tab" data-tab="zlecenia" aria-selected="false">Zlecenia</button>
+    <button role="tab" data-tab="podwykonawcy" aria-selected="false">Podwykonawcy</button>
+  </nav>
+
+  <section id="v-pulpit" class="stack">
+    <div class="kpis">
+      <div class="kpi"><span class="lbl">Otwarte zlecenia</span><span class="val" id="kOpen">–</span><span class="hint" id="kOpenH">&nbsp;</span></div>
+      <div class="kpi alert"><span class="lbl">Po terminie</span><span class="val" id="kLate">–</span><span class="hint" id="kLateH">&nbsp;</span></div>
+      <div class="kpi"><span class="lbl">Odbiory dziś</span><span class="val" id="kToday">–</span><span class="hint" id="kTodayH">&nbsp;</span></div>
+      <div class="kpi"><span class="lbl">Ten tydzień (otwarte)</span><span class="val" id="kWeek">–</span><span class="hint" id="kWeekH">&nbsp;</span></div>
+    </div>
+    <div class="cols">
+      <div class="panel">
+        <div class="hd"><h2>Najbliższe odbiory</h2><span class="small">otwarte zlecenia, najpierw zaległe</span></div>
+        <div class="tablebox"><table><thead><tr><th>Data</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Status</th><th>Alert</th></tr></thead><tbody id="pNext"></tbody></table></div>
+        <div class="empty" id="pNextEmpty" hidden></div>
+      </div>
+      <div class="stack">
+        <div class="panel"><div class="hd"><h2>Podwykonawcy</h2></div><div id="pSup"></div></div>
+        <div class="panel"><div class="hd"><h2>Zlecenia w miesiącach</h2></div><div class="chart" id="pChart"></div><div class="legend" id="pLegend"></div></div>
+        <div class="panel"><div class="hd"><h2>Rodzaje zleceń</h2></div>
+          <div class="tablebox"><table><thead><tr><th>Rodzaj</th><th class="num">Razem</th><th class="num">Otwarte</th></tr></thead><tbody id="pRodz"></tbody></table></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="v-kalendarz" class="panel" hidden>
+    <div class="hd">
+      <div class="toolbar">
+        <button class="btn sm" type="button" id="calPrev" aria-label="Poprzedni miesiąc">‹</button>
+        <h2 id="calTitle" style="min-width:150px;text-align:center"></h2>
+        <button class="btn sm" type="button" id="calNext" aria-label="Następny miesiąc">›</button>
+        <button class="btn sm" type="button" id="calToday">Dziś</button>
+      </div>
+      <div class="toolbar">
+        <select id="calSup" aria-label="Podwykonawca"></select>
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--fg)"><input type="checkbox" id="calDone" checked> Pokaż odebrane</label>
+      </div>
+    </div>
+    <div class="cal" id="cal"></div>
+    <div class="legend" id="calLegend" style="padding-top:10px"></div>
+    <p class="small" style="margin:0;padding:0 14px 12px">Kliknij wpis, żeby go edytować, albo pusty fragment dnia, żeby dodać zlecenie na ten dzień. Zlecenia z soboty i niedzieli widać w piątku.</p>
+  </section>
+
+  <section id="v-tydzien" class="panel" hidden>
+    <div class="hd">
+      <div class="toolbar">
+        <button class="btn sm" type="button" id="wkPrev" aria-label="Poprzedni tydzień">‹</button>
+        <h2 id="wkTitle" style="min-width:210px;text-align:center"></h2>
+        <button class="btn sm" type="button" id="wkNext" aria-label="Następny tydzień">›</button>
+        <button class="btn sm" type="button" id="wkToday">Ten tydzień</button>
+      </div>
+      <div class="toolbar">
+        <select id="wkSup" aria-label="Podwykonawca"></select>
+        <select id="wkShow" aria-label="Pokaż"><option value="open">Otwarte</option><option value="all">Wszystkie</option></select>
+      </div>
+    </div>
+    <div class="tablebox"><table class="wide"><thead><tr><th>Dzień</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość</th><th>Status</th><th>Uwagi</th></tr></thead><tbody id="wkRows"></tbody></table></div>
+    <div class="empty" id="wkEmpty" hidden></div>
+    <div class="mail" id="wkMail"></div>
+  </section>
+
+  <section id="v-zlecenia" class="panel" hidden>
+    <div class="hd">
+      <div class="toolbar">
+        <select id="zSup" aria-label="Podwykonawca"></select>
+        <select id="zStatus" aria-label="Status"></select>
+        <input id="zQ" type="search" placeholder="Szukaj: nr, opis, uwagi…" aria-label="Szukaj" style="width:220px;max-width:100%">
+      </div>
+      <div class="toolbar">
+        <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--fg)"><input type="checkbox" id="zClosed"> Pokaż też odebrane i anulowane</label>
+        <button class="btn sm" type="button" id="btnCsv">Eksportuj do Excela (CSV)</button>
+      </div>
+    </div>
+    <div class="tablebox"><table class="wide"><thead><tr><th>Data odbioru</th><th>Dzień</th><th>Tydz.</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość [szt]</th><th>Status</th><th>Odebrano dnia</th><th>Alert</th><th>Uwagi</th><th>Ostatnia zmiana</th><th></th></tr></thead><tbody id="zRows"></tbody></table></div>
+    <div class="empty" id="zEmpty" hidden></div>
+  </section>
+
+  <section id="v-podwykonawcy" class="stack" hidden>
+    <div class="panel">
+      <div class="hd"><h2>Podwykonawcy</h2><div class="toolbar"><button class="btn sm" type="button" id="btnSeed" hidden>Wczytaj podwykonawców z Excela</button><button class="btn sm" type="button" id="btnNewSup" hidden>+ Dodaj podwykonawcę</button></div></div>
+      <div class="tablebox"><table class="wide"><thead><tr><th>Podwykonawca</th><th>Osoba / dział</th><th>Telefon</th><th>E-mail (Do)</th><th>Osoba 2</th><th>Telefon 2</th><th>E-mail 2 (DW)</th><th class="num">Zleceń</th></tr></thead><tbody id="sRows"></tbody></table></div>
+      <div class="empty" id="sEmpty" hidden></div>
+      <p class="small" id="sHint" style="margin:0;padding:0 14px 12px" hidden>Podwykonawców i rodzaje zleceń zmienia administrator Truck App.</p>
+    </div>
+    <div class="panel">
+      <div class="hd"><h2>Rodzaje zleceń</h2>
+        <form id="fRodz" class="toolbar" novalidate hidden><input id="newRodz" placeholder="Nowy rodzaj" aria-label="Nowy rodzaj"><button class="btn sm" type="submit">Dodaj</button></form></div>
+      <div class="tag-list" id="rodzList"></div>
+    </div>
+  </section>
+</div>
+
+<dialog id="dlgZ">
+  <form id="fZ" method="dialog" novalidate>
+    <h3 id="zTitle">Nowe zlecenie</h3>
+    <div class="conflict" id="zConflict" hidden></div>
+    <div class="grid">
+      <label>Data odbioru<input id="z_data" type="date" required></label>
+      <label>Podwykonawca<select id="z_podw" required></select></label>
+      <label>Nr zlecenia<input id="z_nr" placeholder="np. LOPR615-26B"></label>
+      <label>Rodzaj<select id="z_rodzaj"></select></label>
+      <label class="full">Element / opis<input id="z_opis" placeholder="np. Uszka mobilne do belki"></label>
+      <label>Ilość [szt]<input id="z_ilosc" type="number" min="0" step="1"></label>
+      <label>Status<select id="z_status"></select></label>
+      <label>Odebrano dnia<input id="z_odebrano" type="date"></label>
+      <label class="full">Uwagi<textarea id="z_uwagi" rows="2" placeholder="np. poz. 117, pilne"></textarea></label>
+    </div>
+    <div class="err" id="zErr" hidden></div>
+    <div class="audit" id="zAudit" hidden></div>
+    <div class="foot">
+      <button class="btn danger" id="zDel" type="button" hidden>Usuń</button>
+      <span class="err" id="zDelAsk" hidden>Usunąć zlecenie? <button class="btn sm danger" id="zDelYes" type="button">Tak, usuń</button></span>
+      <span class="grow"></span>
+      <button class="btn" type="button" data-close>Anuluj</button>
+      <button class="btn primary" type="submit" id="zSave">Zapisz</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgS">
+  <form id="fS" method="dialog" novalidate>
+    <h3 id="sTitle">Podwykonawca</h3>
+    <div class="grid">
+      <label class="full">Nazwa<input id="s_nazwa" required></label>
+      <label>Osoba / dział<input id="s_dzial"></label>
+      <label>Telefon<input id="s_tel" inputmode="tel"></label>
+      <label class="full">E-mail (Do — plan tygodnia)<input id="s_email" type="email"></label>
+      <label>Osoba 2<input id="s_osoba2"></label>
+      <label>Telefon 2<input id="s_tel2" inputmode="tel"></label>
+      <label class="full">E-mail 2 (DW — kopia)<input id="s_email2" type="email"></label>
+      <div class="full"><span class="lbl" style="display:block;margin-bottom:6px">Kolor w kalendarzu</span><div class="colors" id="s_kolor"></div></div>
+    </div>
+    <div class="err" id="sErr" hidden></div>
+    <div class="foot">
+      <button class="btn danger" id="sDel" type="button" hidden>Usuń</button>
+      <span class="err" id="sDelAsk" hidden></span>
+      <span class="grow"></span>
+      <button class="btn" type="button" data-close>Anuluj</button>
+      <button class="btn primary" type="submit">Zapisz</button>
+    </div>
+  </form>
+</dialog>
+<div class="toast" id="toast" hidden></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, runTransaction, serverTimestamp, getDocs, query, orderBy, limit, writeBatch, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ===== Firebase – ten sam projekt co Truck App ===== */
+const firebaseConfig = {
+  apiKey: "AIzaSyB8Zi3CTsEJDqnxpt2EpmEN0JKbQZkx9Ik",
+  authDomain: "logistyka-app-41d7a.firebaseapp.com",
+  projectId: "logistyka-app-41d7a",
+  storageBucket: "logistyka-app-41d7a.firebasestorage.app",
+  messagingSenderId: "730726420764",
+  appId: "1:730726420764:web:fbd4a12acd2b5ebdb52ad9"
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+// Login → konto Firebase dokładnie tak jak w Truck App
+const normLogin = t => String(t||"").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ł/g,"l").replace(/[^a-z0-9._-]+/g,".").replace(/^\.+|\.+$/g,"");
+const loginEmail = t => normLogin(t) + "@konta." + firebaseConfig.authDomain;
+
+const C = { z:"koop_zlecenia", p:"koop_podwykonawcy", u:"koop_ustawienia", kosz:"koop_kosz" };
+const $ = id => document.getElementById(id);
+const STATUSY = ["Zlecone","W realizacji","Gotowe do odbioru","Odebrane","Anulowane"];
+const RODZAJE_DOMYSLNE = ["Rynny","Kątowniki","Ceowniki","Uszka mobilne","Elementy zimnogięte","Blachy i obróbki","Bramy","Inne"];
+const START_PODW = [
+  {id:"dar-spaw", nazwa:"DAR-SPAW", dzial:"Laser/ Gięcie", tel:"780624665", email:"laser@dar-spaw.pl", osoba2:"Kierownik Ślusarni", tel2:"513 162 141", email2:"cieslak@dar-spaw.pl", kolor:0, kolejnosc:1},
+  {id:"krat-metal", nazwa:"KRAT-METAL", dzial:"Wypałki/Gięcie", tel:"508107293", email:"biuro@kratmetal.pl", osoba2:"", tel2:"", email2:"", kolor:1, kolejnosc:2},
+  {id:"rolmasz", nazwa:"ROLMASZ", dzial:"OBRÓBKI", tel:"669891637", email:"roman@rolmasz24.pl", osoba2:"", tel2:"", email2:"", kolor:2, kolejnosc:3}
+];
+const POLA = ["data","podw","nr","opis","rodzaj","ilosc","status","odebrano","uwagi"];
+const POLA_NAZWY = {data:"data odbioru",podw:"podwykonawca",nr:"nr zlecenia",opis:"opis",rodzaj:"rodzaj",ilosc:"ilość",status:"status",odebrano:"odebrano dnia",uwagi:"uwagi"};
+const DNI = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
+const DNI_K = ["nd","pn","wt","śr","cz","pt","sb"];
+const MIES = ["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","sierpień","wrzesień","październik","listopad","grudzień"];
+const MIES_K = ["sty","lut","mar","kwi","maj","cze","lip","sie","wrz","paź","lis","gru"];
+
+let Z = [], P = [], rodzaje = RODZAJE_DOMYSLNE.slice();
+let me = null;               // {uid, login, nazwa, admin}
+let subs = [];
+let canWrite = false, isAdmin = false;
+
+/* ---------- daty ---------- */
+function iso(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+const today = () => iso(new Date());
+const pd = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+const addD = (s,n) => { const d=pd(s); d.setDate(d.getDate()+n); return iso(d); };
+const monday = s => { const d=pd(s); d.setDate(d.getDate()-((d.getDay()+6)%7)); return iso(d); };
+function isoWeek(s){ const d=pd(s); d.setDate(d.getDate()+3-((d.getDay()+6)%7)); const w1=new Date(d.getFullYear(),0,4); return 1+Math.round(((d-w1)/864e5-3+((w1.getDay()+6)%7))/7); }
+const fD = s => s ? s.slice(8,10)+"."+s.slice(5,7)+"."+s.slice(0,4) : "";
+const fDs = s => s ? s.slice(8,10)+"."+s.slice(5,7) : "";
+const tsDate = t => t && typeof t.toDate==="function" ? t.toDate() : null;
+const fTs = t => { const d=tsDate(t); return d ? String(d.getDate()).padStart(2,"0")+"."+String(d.getMonth()+1).padStart(2,"0")+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0") : ""; };
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------- pomocnicze ---------- */
+const closed = z => z.status==="Odebrane" || z.status==="Anulowane";
+const sup = id => P.find(p=>p.id===id);
+const supName = id => sup(id)?.nazwa || "—";
+const supColor = id => `var(--c${sup(id)?.kolor ?? 7})`;
+function alertOf(z){
+  if (closed(z) || !z.data) return null;
+  const t=today();
+  if (z.data < t) return ["⚠ Po terminie","alert-late"];
+  if (z.data === t) return ["Dziś","alert-today"];
+  if (z.data <= addD(t,7)) return ["W ciągu 7 dni","alert-soon"];
+  return null;
+}
+const stClass = s => "st-"+String(s||"Zlecone").split(" ")[0];
+const pill = s => `<span class="pill ${stClass(s)}">${esc(s||"Zlecone")}</span>`;
+const byDate = (a,b) => (a.data||"9").localeCompare(b.data||"9") || supName(a.podw).localeCompare(supName(b.podw),"pl");
+const sortedP = () => P.slice().sort((a,b)=>(a.kolejnosc??99)-(b.kolejnosc??99)||String(a.nazwa).localeCompare(String(b.nazwa),"pl"));
+
+/* ---------- widoki ---------- */
+function show(view, msg){
+  $("vLogin").hidden = view!=="login"; $("vApp").hidden = view!=="app"; $("vMsg").hidden = view!=="msg";
+  if (view==="msg"){ $("msgText").textContent = msg; $("msgOut").hidden = !auth.currentUser; }
+}
+const TABS=["pulpit","kalendarz","tydzien","zlecenia","podwykonawcy"];
+let tab="pulpit";
+function setTab(t){ tab=TABS.includes(t)?t:"pulpit"; for(const k of TABS) $("v-"+k).hidden = k!==tab;
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===tab));
+  try{ history.replaceState(null,"","#"+tab); }catch{} }
+document.querySelector("nav.tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-tab]"); if(b) setTab(b.dataset.tab); });
+setTab((location.hash||"").slice(1));
+
+let calMonth = today().slice(0,7), calSup="", calDone=true;
+let wkStart = monday(today()), wkSup="", wkShow="open";
+let zSup="", zStatus="", zQ="", zClosed=false;
+function fillSupSelect(el, val){ el.innerHTML = `<option value="">Wszyscy podwykonawcy</option>`+sortedP().map(p=>`<option value="${p.id}" ${p.id===val?"selected":""}>${esc(p.nazwa)}</option>`).join(""); }
+
+function render(){
+  if (!me) return;
+  const t=today();
+  $("stan").textContent = `Stan na ${fD(t)} · tydzień ${isoWeek(t)}`;
+  $("who").innerHTML = `<span>Zalogowany: <b>${esc(me.nazwa||me.login)}</b>${isAdmin?" · administrator":""}</span>`;
+  $("btnNew").hidden=!canWrite; $("btnNewSup").hidden=!isAdmin; $("fRodz").hidden=!isAdmin; $("sHint").hidden=isAdmin;
+  $("btnSeed").hidden = !(isAdmin && P.length===0);
+  renderPulpit(); renderCal(); renderWeek(); renderZ(); renderSup();
+}
+
+function renderPulpit(){
+  const t=today(), mon=monday(t), sun=addD(mon,6);
+  const open=Z.filter(z=>!closed(z));
+  const late=open.filter(z=>z.data && z.data<t);
+  const td=open.filter(z=>z.data===t);
+  const wk=open.filter(z=>z.data>=mon && z.data<=sun);
+  $("kOpen").textContent=open.length;
+  $("kOpenH").textContent=open.filter(z=>z.status==="Gotowe do odbioru").length+" gotowych do odbioru";
+  $("kLate").textContent=late.length;
+  $("kLateH").textContent=late.length? "najstarsze z "+fD(late.map(z=>z.data).sort()[0]) : "wszystko w terminie";
+  $("kToday").textContent=td.length;
+  $("kTodayH").textContent=td.length? [...new Set(td.map(z=>supName(z.podw)))].join(", ") : "brak odbiorów";
+  $("kWeek").textContent=wk.length;
+  $("kWeekH").textContent=`${fDs(mon)} – ${fDs(addD(mon,4))}`;
+
+  const next=open.slice().sort(byDate).slice(0,20);
+  $("pNext").innerHTML=next.map(z=>{const a=alertOf(z); return `<tr class="click ${a&&a[1]==="alert-late"?"late":""}" data-z="${z.id}">
+    <td class="mono">${fD(z.data)}</td><td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td>
+    <td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${pill(z.status)}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td></tr>`;}).join("");
+  const more=open.length-next.length, pe=$("pNextEmpty");
+  if(!open.length){ pe.hidden=false; pe.innerHTML=`<strong>Brak otwartych zleceń</strong><span>Dodaj zlecenie przyciskiem „Nowe zlecenie” albo kliknij dzień w kalendarzu.</span>`; }
+  else if(more>0){ pe.hidden=false; pe.innerHTML=`<span>… i jeszcze ${more} – pełna lista w zakładce Zlecenia</span>`; }
+  else pe.hidden=true;
+
+  $("pSup").innerHTML = P.length? sortedP().map(p=>{
+    const mine=Z.filter(z=>z.podw===p.id), op=mine.filter(z=>!closed(z)), lt=op.filter(z=>z.data&&z.data<t);
+    return `<div class="sup-card"><div class="nm"><span><span class="sw" style="background:var(--c${p.kolor??7})"></span>${esc(p.nazwa)}</span><span class="small">${esc(p.dzial||"")}</span></div>
+      <div class="nums"><span>Razem <b>${mine.length}</b></span><span>Otwarte <b>${op.length}</b></span><span>Po term. <b class="${lt.length?"bad":""}">${lt.length}</b></span><span>Odebr. <b>${mine.filter(z=>z.status==="Odebrane").length}</b></span></div>
+      <div class="small mono">${esc([p.tel,p.email].filter(Boolean).join("  ·  "))}</div></div>`;}).join("")
+    : `<div class="empty"><span>Brak podwykonawców. ${isAdmin?"Wczytaj ich w zakładce Podwykonawcy.":"Administrator musi ich dodać."}</span></div>`;
+
+  const months=[]; { const d=pd(t.slice(0,7)+"-01"); d.setMonth(d.getMonth()-9); for(let i=0;i<10;i++){ months.push(iso(d).slice(0,7)); d.setMonth(d.getMonth()+1);} }
+  const ps=sortedP();
+  const data=months.map(m=>ps.map(p=>Z.filter(z=>z.podw===p.id && (z.data||"").startsWith(m) && z.status!=="Anulowane").length));
+  const max=Math.max(1,...data.map(r=>r.reduce((a,b)=>a+b,0)));
+  const step = max<=5?1: max<=10?2: max<=25?5: 10, top=Math.ceil(max/step)*step;
+  const W=320,H=170,L=26,B=22,T=8, cw=(W-L-4)/months.length, y=v=>T+(H-T-B)*(1-v/top);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Liczba zleceń w ostatnich 10 miesiącach">`;
+  for(let v=0; v<=top; v+=step){ svg+=`<line x1="${L}" x2="${W-4}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-5}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)">${v}</text>`; }
+  months.forEach((m,i)=>{ let acc=0; const x=L+i*cw+cw*0.18, w=cw*0.64;
+    data[i].forEach((n,j)=>{ if(!n) return; svg+=`<rect x="${x}" y="${y(acc+n)}" width="${w}" height="${y(acc)-y(acc+n)}" fill="var(--c${ps[j].kolor??7})"><title>${esc(ps[j].nazwa)} · ${MIES[+m.slice(5)-1]} ${m.slice(0,4)}: ${n}</title></rect>`; acc+=n; });
+    svg+=`<text x="${L+i*cw+cw/2}" y="${H-6}" text-anchor="middle" font-size="10" fill="var(--muted)">${MIES_K[+m.slice(5)-1]}</text>`; });
+  $("pChart").innerHTML=svg+"</svg>";
+  $("pLegend").innerHTML=ps.map(p=>`<span><span class="sw" style="background:var(--c${p.kolor??7})"></span>${esc(p.nazwa)}</span>`).join("");
+
+  const rs=[...new Set([...rodzaje, ...Z.map(z=>z.rodzaj).filter(Boolean)])];
+  $("pRodz").innerHTML=rs.map(r=>{const all=Z.filter(z=>z.rodzaj===r); return `<tr><td>${esc(r)}</td><td class="num">${all.length}</td><td class="num">${all.filter(z=>!closed(z)).length}</td></tr>`;}).join("");
+}
+
+function evHtml(z, showDate){
+  const a=alertOf(z), late=a&&a[1]==="alert-late";
+  const label=[z.nr, z.opis].filter(Boolean).join(" · ") || z.rodzaj || "zlecenie";
+  return `<button type="button" class="ev ${late?"late":""} ${closed(z)?"done":""}" data-z="${z.id}" style="border-left-color:${supColor(z.podw)}" title="${esc(supName(z.podw))} · ${esc(z.status)}">${showDate?`<span class="we">${DNI_K[pd(z.data).getDay()]} ${fDs(z.data)} · </span>`:""}${esc(label)}</button>`;
+}
+function renderCal(){
+  fillSupSelect($("calSup"), calSup);
+  const [y,m]=calMonth.split("-").map(Number);
+  $("calTitle").textContent = MIES[m-1][0].toUpperCase()+MIES[m-1].slice(1)+" "+y;
+  let d=monday(calMonth+"-01"); const last=iso(new Date(y,m,0)), t=today();
+  const list=Z.filter(z=>z.data && (!calSup||z.podw===calSup) && (calDone || !closed(z)) && z.status!=="Anulowane");
+  let h=`<div class="h">Tydz.</div>`+["Poniedziałek","Wtorek","Środa","Czwartek","Piątek"].map(n=>`<div class="h">${n}</div>`).join("");
+  while(d<=last){
+    h+=`<div class="wk">T${isoWeek(d)}</div>`;
+    for(let i=0;i<5;i++){
+      const day=addD(d,i), inM=day.slice(0,7)===calMonth;
+      let evs=list.filter(z=>z.data===day);
+      if(i===4) evs=evs.concat(list.filter(z=>z.data===addD(d,5)||z.data===addD(d,6)));
+      evs.sort(byDate);
+      const n=evs.length;
+      h+=`<div class="day ${inM?"":"out"} ${day===t?"today":""} ${n?"":"blank"}" data-day="${day}" tabindex="0" aria-label="${DNI[pd(day).getDay()]} ${fD(day)}, zleceń: ${n}">
+        <div class="dn"><b>${fDs(day)}</b><span>${n? n+" "+(n===1?"zlecenie":(n<5?"zlecenia":"zleceń")):""}</span></div>
+        ${evs.map(z=>evHtml(z, z.data!==day)).join("")}</div>`;
+    }
+    d=addD(d,7);
+  }
+  $("cal").innerHTML=h;
+  $("calLegend").innerHTML=sortedP().map(p=>`<span><span class="sw" style="background:var(--c${p.kolor??7})"></span>${esc(p.nazwa)}</span>`).join("")+`<span style="color:var(--bad);font-weight:600">Po terminie = czerwony tekst</span>`;
+}
+
+function renderWeek(){
+  fillSupSelect($("wkSup"), wkSup);
+  const end=addD(wkStart,6);
+  $("wkTitle").textContent=`Tydzień ${isoWeek(wkStart)} · ${fDs(wkStart)} – ${fD(addD(wkStart,4))}`;
+  const list=Z.filter(z=>z.data>=wkStart && z.data<=end && (!wkSup||z.podw===wkSup) && (wkShow==="all" || !closed(z))).sort(byDate);
+  let h="", cur="";
+  for(const z of list){
+    if(z.data!==cur){ cur=z.data; h+=`<tr class="dayhead"><td colspan="8">${DNI[pd(cur).getDay()]} ${fD(cur)}</td></tr>`; }
+    const a=alertOf(z);
+    h+=`<tr class="click ${a&&a[1]==="alert-late"?"late":""} ${closed(z)?"closed":""}" data-z="${z.id}"><td class="small">${DNI_K[pd(z.data).getDay()]}</td>
+      <td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td>
+      <td class="num">${z.ilosc??""}</td><td>${pill(z.status)}</td><td class="small">${esc(z.uwagi)}</td></tr>`;
+  }
+  $("wkRows").innerHTML=h;
+  const e=$("wkEmpty"); e.hidden=!!list.length; e.innerHTML=`<span>Brak ${wkShow==="open"?"otwartych ":""}odbiorów w tym tygodniu.</span>`;
+  const p=wkSup? sup(wkSup):null;
+  $("wkMail").innerHTML = `<div class="row"><span class="lbl">Plan tygodnia do wysłania</span><button class="btn sm" type="button" id="wkCopy" ${list.length?"":"disabled"}>Kopiuj treść planu</button>${p&&p.email&&list.length?`<a class="btn sm" id="wkMailto" href="#">Otwórz w poczcie</a>`:""}</div>`+
+    (p? `<div class="row small">Do: ${p.email?`<code>${esc(p.email)}</code>`:"brak adresu"} ${p.email2?`DW: <code>${esc(p.email2)}</code>`:""}</div>`
+       : `<div class="small">Wybierz podwykonawcę, żeby zobaczyć adresy e-mail (Do i DW) do wysłania planu.</div>`);
+  $("wkCopy").onclick=()=>copyText(planText(list,p),"Skopiowano plan tygodnia");
+  const mt=$("wkMailto"); if(mt){ const subj=`Plan odbiorów – tydzień ${isoWeek(wkStart)}`;
+    mt.href=`mailto:${encodeURIComponent(p.email)}?${p.email2?"cc="+encodeURIComponent(p.email2)+"&":""}subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(planText(list,p))}`; }
+}
+function planText(list, p){
+  const lines=[`Plan odbiorów – tydzień ${isoWeek(wkStart)} (${fDs(wkStart)} – ${fD(addD(wkStart,4))})${p?" – "+p.nazwa:""}`,""]; let cur="";
+  for(const z of list){
+    if(z.data!==cur){ cur=z.data; const dn=DNI[pd(cur).getDay()]; lines.push((lines.length>2?"\n":"")+dn[0].toUpperCase()+dn.slice(1)+" "+fD(cur)+":"); }
+    lines.push("- "+[p?null:supName(z.podw), z.nr, z.opis, z.ilosc?z.ilosc+" szt":null].filter(Boolean).join(" – ")+(z.status&&z.status!=="Zlecone"?` [${z.status}]`:"")+(z.uwagi?` (${z.uwagi})`:""));
+  }
+  return lines.join("\n");
+}
+async function copyText(txt,msg){ try{ await navigator.clipboard.writeText(txt); toast(msg); }catch{
+  const ta=document.createElement("textarea"); ta.value=txt; ta.style.position="fixed"; ta.style.opacity="0"; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand("copy"); toast(msg);}catch{ toast("Nie udało się skopiować"); } ta.remove(); } }
+
+function renderZ(){
+  fillSupSelect($("zSup"), zSup);
+  $("zStatus").innerHTML=`<option value="">Każdy status</option>`+STATUSY.map(s=>`<option ${s===zStatus?"selected":""}>${s}</option>`).join("");
+  const q=zQ.trim().toLowerCase();
+  const list=Z.filter(z=>(!zSup||z.podw===zSup) && (!zStatus||z.status===zStatus) && (zClosed||zStatus||!closed(z)) &&
+    (!q||[z.nr,z.opis,z.uwagi,z.rodzaj].join(" ").toLowerCase().includes(q))).sort(byDate);
+  $("zRows").innerHTML=list.map(z=>{const a=alertOf(z); return `<tr class="click ${a&&a[1]==="alert-late"?"late":""} ${closed(z)?"closed":""}" data-z="${z.id}">
+    <td class="mono">${fD(z.data)}</td><td class="small">${z.data?DNI_K[pd(z.data).getDay()]:""}</td><td class="mono">${z.data?isoWeek(z.data):""}</td>
+    <td style="white-space:nowrap"><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td>
+    <td class="num">${z.ilosc??""}</td><td>${pill(z.status)}</td><td class="mono">${fD(z.odebrano)}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td><td class="small">${esc(z.uwagi)}</td>
+    <td class="small" style="white-space:nowrap">${esc(z.zmienilNazwa||"")}<br>${fTs(z.zmieniono)}</td>
+    <td>${canWrite&&!closed(z)?`<button class="btn sm" type="button" data-odb="${z.id}">Odebrane</button>`:""}</td></tr>`;}).join("");
+  const e=$("zEmpty"); e.hidden=!!list.length;
+  e.innerHTML = Z.length? `<span>Żadne zlecenie nie pasuje do filtrów.</span>` : `<strong>Brak zleceń</strong><span>Dodaj pierwsze zlecenie przyciskiem „Nowe zlecenie”.</span>`;
+}
+
+function renderSup(){
+  $("sRows").innerHTML=sortedP().map(p=>`<tr class="${isAdmin?"click":""}" data-s="${p.id}"><td class="strong"><span class="sw" style="background:var(--c${p.kolor??7})"></span>${esc(p.nazwa)}</td><td>${esc(p.dzial)}</td>
+    <td class="mono">${esc(p.tel)}</td><td class="mono">${esc(p.email)}</td><td>${esc(p.osoba2)}</td><td class="mono">${esc(p.tel2)}</td><td class="mono">${esc(p.email2)}</td>
+    <td class="num">${Z.filter(z=>z.podw===p.id).length}</td></tr>`).join("");
+  const e=$("sEmpty"); e.hidden=!!P.length; e.innerHTML=`<strong>Brak podwykonawców</strong><span>${isAdmin?"Kliknij „Wczytaj podwykonawców z Excela” albo dodaj ich ręcznie.":"Administrator Truck App musi ich dodać."}</span>`;
+  $("rodzList").innerHTML=rodzaje.map((r,i)=>`<span class="tag">${esc(r)}${isAdmin?`<button type="button" data-rmr="${i}" aria-label="Usuń rodzaj ${esc(r)}">×</button>`:""}</span>`).join("");
+}
+
+/* ---------- akcje ---------- */
+document.addEventListener("click", e=>{
+  const odb=e.target.closest("[data-odb]"); if (odb){ e.stopPropagation(); markOdebrane(odb.dataset.odb); return; }
+  const ev=e.target.closest("[data-z]"); if (ev){ openZ(ev.dataset.z); return; }
+  const day=e.target.closest(".day[data-day]"); if(day && canWrite){ openZ(null,{data:day.dataset.day, podw:calSup}); return; }
+  const s=e.target.closest("tr[data-s]"); if(s && isAdmin){ openS(s.dataset.s); return; }
+  const rm=e.target.closest("[data-rmr]"); if(rm){ const r=rodzaje.slice(); r.splice(+rm.dataset.rmr,1); saveRodz(r); return; }
+  const c=e.target.closest("[data-close]"); if(c) c.closest("dialog").close();
+});
+document.addEventListener("keydown", e=>{ if((e.key==="Enter"||e.key===" ") && e.target.classList?.contains("day")){ e.preventDefault(); if(canWrite) openZ(null,{data:e.target.dataset.day, podw:calSup}); } });
+$("btnNew").onclick=()=>openZ(null,{});
+$("btnNewSup").onclick=()=>openS(null);
+const mAdd=n=>{ const d=pd(calMonth+"-01"); d.setMonth(d.getMonth()+n); calMonth=iso(d).slice(0,7); renderCal(); };
+$("calPrev").onclick=()=>mAdd(-1); $("calNext").onclick=()=>mAdd(1); $("calToday").onclick=()=>{calMonth=today().slice(0,7); renderCal();};
+$("calSup").onchange=e=>{calSup=e.target.value; renderCal();};
+$("calDone").onchange=e=>{calDone=e.target.checked; renderCal();};
+$("wkPrev").onclick=()=>{wkStart=addD(wkStart,-7); renderWeek();}; $("wkNext").onclick=()=>{wkStart=addD(wkStart,7); renderWeek();};
+$("wkToday").onclick=()=>{wkStart=monday(today()); renderWeek();};
+$("wkSup").onchange=e=>{wkSup=e.target.value; renderWeek();}; $("wkShow").onchange=e=>{wkShow=e.target.value; renderWeek();};
+$("zSup").onchange=e=>{zSup=e.target.value; renderZ();}; $("zStatus").onchange=e=>{zStatus=e.target.value; renderZ();};
+$("zQ").oninput=e=>{zQ=e.target.value; renderZ();}; $("zClosed").onchange=e=>{zClosed=e.target.checked; renderZ();};
+$("btnCsv").onclick=exportCsv;
+
+/* ---------- zapis zlecenia: wersja + historia w jednej transakcji ---------- */
+function diff(cur, next){
+  const out={};
+  for(const k of POLA){ const a=cur?.[k]??"", b=next[k]??""; if(String(a)!==String(b)) out[k]=[a,b]; }
+  return out;
+}
+async function saveZ(id, data, expectedWersja, force){
+  const ref = id? doc(db,C.z,id) : doc(collection(db,C.z));
+  return runTransaction(db, async tx=>{
+    const snap = await tx.get(ref);
+    const cur = snap.exists()? snap.data() : null;
+    if (id && !cur) return {gone:true};
+    if (cur && !force && (cur.wersja||0)!==(expectedWersja||0)) return {conflict:cur};
+    const zmiany = diff(cur, data);
+    if (cur && !Object.keys(zmiany).length) return {nochange:true};
+    const kto = {zmieniono:serverTimestamp(), zmienil:me.uid, zmienilNazwa:me.nazwa||me.login};
+    if (cur) tx.update(ref, {...data, ...kto, wersja:(cur.wersja||0)+1});
+    else tx.set(ref, {...data, ...kto, utworzono:serverTimestamp(), utworzyl:me.uid, utworzylNazwa:me.nazwa||me.login, wersja:1});
+    tx.set(doc(collection(ref,"historia")), {kiedy:serverTimestamp(), kto:me.uid, nazwa:me.nazwa||me.login, akcja:cur?"zmiana":"utworzenie", zmiany});
+    return {ok:true, nowy:!cur};
+  });
+}
+
+let zId=null, zWersja=0;
+function fillZ(v){
+  $("z_data").value=v.data||""; $("z_podw").value=v.podw||""; $("z_nr").value=v.nr||""; $("z_rodzaj").value=v.rodzaj||"";
+  $("z_opis").value=v.opis||""; $("z_ilosc").value=v.ilosc??""; $("z_status").value=v.status||"Zlecone"; $("z_odebrano").value=v.odebrano||""; $("z_uwagi").value=v.uwagi||"";
+}
+function openZ(id, preset){
+  const z = id? Z.find(x=>x.id===id) : null;
+  if(!z && !canWrite) return;
+  if(!P.length && !z){ toast("Najpierw trzeba dodać podwykonawców (zakładka Podwykonawcy)"); setTab("podwykonawcy"); return; }
+  zId=id; zWersja=z?.wersja||0;
+  const v = z || {data:preset.data||today(), podw:preset.podw||sortedP()[0]?.id, status:"Zlecone"};
+  $("zTitle").textContent = z? "Zlecenie "+(z.nr||fD(z.data)) : "Nowe zlecenie";
+  $("z_podw").innerHTML=sortedP().map(p=>`<option value="${p.id}">${esc(p.nazwa)}</option>`).join("");
+  const rs=[...new Set([...rodzaje, v.rodzaj].filter(Boolean))];
+  $("z_rodzaj").innerHTML=`<option value="">—</option>`+rs.map(r=>`<option>${esc(r)}</option>`).join("");
+  $("z_status").innerHTML=STATUSY.map(s=>`<option>${s}</option>`).join("");
+  fillZ(v);
+  $("zDel").hidden=!z||!isAdmin; $("zDelAsk").hidden=true; $("zErr").hidden=true; $("zConflict").hidden=true;
+  $("fZ").querySelectorAll(".grid input,.grid select,.grid textarea").forEach(el=>el.disabled=!canWrite);
+  $("zSave").hidden=!canWrite; $("zSave").textContent="Zapisz";
+  loadAudit(z);
+  $("dlgZ").showModal();
+}
+async function loadAudit(z){
+  const box=$("zAudit");
+  if(!z){ box.hidden=true; return; }
+  box.hidden=false;
+  box.innerHTML=`<div>Dodał(a): <b>${esc(z.utworzylNazwa||"—")}</b> ${fTs(z.utworzono)} · Ostatnio: <b>${esc(z.zmienilNazwa||"—")}</b> ${fTs(z.zmieniono)}</div><div class="lbl">Historia zmian</div><ul><li>Wczytywanie…</li></ul>`;
+  try{
+    const qs=await getDocs(query(collection(db,C.z,z.id,"historia"), orderBy("kiedy","desc"), limit(30)));
+    const val=(k,v)=> k==="podw"? supName(v) : (k==="data"||k==="odebrano")? (fD(v)||"—") : (v===""||v==null?"—":v);
+    box.querySelector("ul").innerHTML = qs.docs.map(d=>{ const h=d.data();
+      const ch=Object.entries(h.zmiany||{}).map(([k,[a,b]])=> h.akcja==="utworzenie"? null : `${POLA_NAZWY[k]||k}: ${esc(val(k,a))} → ${esc(val(k,b))}`).filter(Boolean).join("; ");
+      return `<li>${fTs(h.kiedy)} · <b>${esc(h.nazwa)}</b> · ${h.akcja==="utworzenie"?"dodał(a) zlecenie":esc(ch)}</li>`; }).join("") || "<li>Brak wpisów.</li>";
+  }catch(x){ box.querySelector("ul").innerHTML=`<li>Nie udało się wczytać historii.</li>`; }
+}
+$("z_status").onchange=e=>{ if(e.target.value==="Odebrane" && !$("z_odebrano").value) $("z_odebrano").value=today(); };
+function readZ(){
+  return { data:$("z_data").value, podw:$("z_podw").value, nr:$("z_nr").value.trim(), rodzaj:$("z_rodzaj").value, opis:$("z_opis").value.trim(),
+    ilosc: $("z_ilosc").value===""? null : Math.round(+$("z_ilosc").value), status:$("z_status").value, odebrano:$("z_odebrano").value, uwagi:$("z_uwagi").value.trim() };
+}
+let forceNext=false;
+$("fZ").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const d=readZ();
+  const err = !d.data? "Podaj datę odbioru." : !d.podw? "Wybierz podwykonawcę." : (!d.nr && !d.opis)? "Wpisz nr zlecenia albo opis elementu." : "";
+  if(err){ $("zErr").textContent=err; $("zErr").hidden=false; return; }
+  if(d.status==="Odebrane" && !d.odebrano) d.odebrano=today();
+  $("zSave").disabled=true;
+  try{
+    const r=await saveZ(zId, d, zWersja, forceNext);
+    forceNext=false;
+    if(r.conflict){ showConflict(r.conflict); return; }
+    if(r.gone){ $("zErr").textContent="To zlecenie zostało w międzyczasie usunięte."; $("zErr").hidden=false; return; }
+    toast(r.nochange? "Bez zmian" : r.nowy? "Dodano zlecenie" : "Zapisano zmiany");
+    $("dlgZ").close();
+  }catch(x){ failed(x); }
+  finally{ $("zSave").disabled=false; }
+});
+function showConflict(cur){
+  const box=$("zConflict"); box.hidden=false;
+  box.innerHTML=`<div><b>${esc(cur.zmienilNazwa||"Ktoś")}</b> zmienił(a) to zlecenie ${fTs(cur.zmieniono)}, gdy je edytowałeś(aś). Twoje zmiany nie zostały jeszcze zapisane.</div>
+    <div class="toolbar"><button class="btn sm" type="button" id="cfLoad">Wczytaj ich wersję</button><button class="btn sm" type="button" id="cfForce">Zapisz moją wersję mimo to</button></div>`;
+  $("cfLoad").onclick=()=>{ fillZ(cur); zWersja=cur.wersja||0; box.hidden=true; loadAudit({...cur, id:zId}); toast("Wczytano aktualną wersję"); };
+  $("cfForce").onclick=()=>{ forceNext=true; $("fZ").requestSubmit(); };
+}
+$("zDel").onclick=()=>{$("zDelAsk").hidden=false;};
+$("zDelYes").onclick=async()=>{
+  const z=Z.find(x=>x.id===zId); if(!z) return;
+  try{
+    const b=writeBatch(db); const {id, ...rest}=z;
+    b.set(doc(db,C.kosz,zId), {...rest, usunieto:serverTimestamp(), usunal:me.uid, usunalNazwa:me.nazwa||me.login});
+    b.delete(doc(db,C.z,zId)); await b.commit();
+    toast("Usunięto zlecenie (kopia zostaje w koszu w bazie)"); $("dlgZ").close();
+  }catch(x){ failed(x); }
+};
+async function markOdebrane(id){
+  const z=Z.find(x=>x.id===id); if(!z) return;
+  const d={}; for(const k of POLA) d[k]=z[k]??(k==="ilosc"?null:""); d.status="Odebrane"; d.odebrano=today();
+  try{ const r=await saveZ(id,d,z.wersja||0,false);
+    if(r.conflict){ toast("Ktoś właśnie zmienił to zlecenie – otwórz je i sprawdź"); return; }
+    toast("Oznaczono jako odebrane"); }catch(x){ failed(x); }
+}
+
+/* ---------- podwykonawcy / rodzaje (administrator) ---------- */
+let sId=null;
+const SF=["nazwa","dzial","tel","email","osoba2","tel2","email2"];
+function openS(id){
+  sId=id; const p=id? sup(id) : null;
+  $("sTitle").textContent = p? p.nazwa : "Nowy podwykonawca";
+  for(const k of SF) $("s_"+k).value = p?.[k]||"";
+  const used=P.map(x=>x.kolor); const k0 = p? (p.kolor??7) : ([0,1,2,3,4,5,6].find(c=>!used.includes(c)) ?? 7);
+  $("s_kolor").innerHTML=[0,1,2,3,4,5,6,7].map(c=>`<label><input type="radio" name="kolor" value="${c}" ${c===k0?"checked":""} aria-label="Kolor ${c+1}"><span style="background:var(--c${c})"></span></label>`).join("");
+  $("sDel").hidden=!p; $("sDelAsk").hidden=true; $("sErr").hidden=true;
+  $("dlgS").showModal();
+}
+const slug = s => normLogin(s).replace(/\./g,"-") || "p";
+$("fS").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const d={}; for(const k of SF) d[k]=$("s_"+k).value.trim();
+  d.kolor=+($("fS").querySelector("input[name=kolor]:checked")?.value ?? 7);
+  if(!d.nazwa){ $("sErr").textContent="Podaj nazwę podwykonawcy."; $("sErr").hidden=false; return; }
+  if(P.some(p=>p.id!==sId && String(p.nazwa).toLowerCase()===d.nazwa.toLowerCase())){ $("sErr").textContent="Taki podwykonawca już jest na liście."; $("sErr").hidden=false; return; }
+  const prev=sId? sup(sId):null; d.kolejnosc = prev?.kolejnosc ?? (Math.max(0,...P.map(p=>p.kolejnosc||0))+1);
+  let id=sId; if(!id){ id=slug(d.nazwa); if(P.some(p=>p.id===id)) id+="-"+Date.now().toString(36); }
+  try{ await setDoc(doc(db,C.p,id), d); toast(prev?"Zapisano dane podwykonawcy":"Dodano podwykonawcę"); $("dlgS").close(); }catch(x){ failed(x); }
+});
+$("sDel").onclick=()=>{
+  const n=Z.filter(z=>z.podw===sId).length; const a=$("sDelAsk"); a.hidden=false;
+  a.innerHTML = n? `Ten podwykonawca ma ${n} zleceń — najpierw je usuń albo przepisz.` : `Usunąć podwykonawcę? <button class="btn sm danger" id="sDelYes" type="button">Tak, usuń</button>`;
+  const y=$("sDelYes"); if(y) y.onclick=async()=>{ try{ await deleteDoc(doc(db,C.p,sId)); toast("Usunięto podwykonawcę"); $("dlgS").close(); }catch(x){ failed(x); } };
+};
+$("fRodz").addEventListener("submit", e=>{ e.preventDefault(); const v=$("newRodz").value.trim(); if(!v) return;
+  if(rodzaje.some(r=>r.toLowerCase()===v.toLowerCase())){ toast("Taki rodzaj już jest"); return; } saveRodz([...rodzaje, v]); $("newRodz").value=""; });
+async function saveRodz(r){ try{ await setDoc(doc(db,C.u,"slowniki"),{rodzaje:r}); toast("Zapisano listę rodzajów"); }catch(x){ failed(x); } }
+$("btnSeed").onclick=async()=>{
+  try{ const b=writeBatch(db);
+    for(const {id,...p} of START_PODW) b.set(doc(db,C.p,id), p);
+    b.set(doc(db,C.u,"slowniki"), {rodzaje:RODZAJE_DOMYSLNE});
+    await b.commit(); toast("Wczytano 3 podwykonawców i rodzaje zleceń"); }catch(x){ failed(x); }
+};
+
+/* ---------- eksport CSV (Excel, średnik, polskie znaki) ---------- */
+function exportCsv(){
+  const head=["Data odbioru","Dzień","Tydz.","Podwykonawca","Nr zlecenia","Element / opis","Rodzaj","Ilość [szt]","Status","Odebrano dnia","Alert","Uwagi","Dodał","Dodano","Ostatnio zmienił","Zmieniono"];
+  const q=v=>{ const s=String(v??""); return /[;"\n\r]/.test(s)? '"'+s.replace(/"/g,'""')+'"' : s; };
+  const rows=Z.slice().sort(byDate).map(z=>[fD(z.data), z.data?DNI_K[pd(z.data).getDay()]:"", z.data?isoWeek(z.data):"", supName(z.podw), z.nr, z.opis, z.rodzaj, z.ilosc??"", z.status, fD(z.odebrano), alertOf(z)?.[0]||"", z.uwagi, z.utworzylNazwa, fTs(z.utworzono), z.zmienilNazwa, fTs(z.zmieniono)]);
+  const csv="﻿"+[head,...rows].map(r=>r.map(q).join(";")).join("\r\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  a.download=`kooperacje-${today()}.csv`; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000);
+  toast(`Wyeksportowano ${rows.length} zleceń`);
+}
+
+/* ---------- komunikaty ---------- */
+function failed(x){
+  const c=x&&x.code;
+  console.warn(x);
+  toast(c==="permission-denied"? "Brak uprawnień do tej operacji." : c==="unavailable"? "Brak połączenia z bazą – spróbuj za chwilę." : "Nie udało się zapisać: "+(x&&x.message||x));
+}
+let tt; function toast(m){ const t=$("toast"); t.textContent=m; t.hidden=false; clearTimeout(tt); tt=setTimeout(()=>t.hidden=true,3000); }
+function note(m, bad){ const n=$("notice"); n.textContent=m||""; n.hidden=!m; n.classList.toggle("bad",!!bad); }
+
+/* ---------- logowanie i dane ---------- */
+$("fLogin").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const l=$("lLogin").value, p=$("lPass").value;
+  if(!normLogin(l)||!p){ $("lErr").textContent="Wpisz login i hasło."; $("lErr").hidden=false; return; }
+  $("lBtn").disabled=true; $("lErr").hidden=true;
+  try{ await signInWithEmailAndPassword(auth, loginEmail(l), p); }
+  catch(x){
+    const c=x&&x.code;
+    $("lErr").textContent = (c==="auth/invalid-credential"||c==="auth/wrong-password"||c==="auth/user-not-found"||c==="auth/invalid-email")? "Zły login lub hasło."
+      : c==="auth/too-many-requests"? "Za dużo prób. Odczekaj chwilę i spróbuj ponownie."
+      : c==="auth/network-request-failed"? "Brak połączenia z internetem." : "Nie udało się zalogować ("+(c||x)+").";
+    $("lErr").hidden=false;
+  } finally { $("lBtn").disabled=false; }
+});
+const doOut=()=>signOut(auth);
+$("btnOut").onclick=doOut; $("msgOut").onclick=doOut;
+
+function stopSubs(){ subs.forEach(u=>{try{u();}catch{}}); subs=[]; }
+function startData(){
+  const lost=x=>{ console.warn(x); note(x&&x.code==="permission-denied"? "Baza odmawia dostępu do Kooperacji. Administrator musi dodać reguły Kooperacji w Firebase (instrukcja, krok 1)." : "Utracono połączenie z bazą. Odśwież stronę.", true); };
+  subs.push(onSnapshot(collection(db,C.z), s=>{ Z=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
+  subs.push(onSnapshot(collection(db,C.p), s=>{ P=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
+  subs.push(onSnapshot(doc(db,C.u,"slowniki"), s=>{ if(s.exists() && Array.isArray(s.data().rodzaje)) rodzaje=s.data().rodzaje.slice(); render(); }, lost));
+}
+
+let userUnsub=null, metaUnsub=null, adminUid="";
+onAuthStateChanged(auth, u=>{
+  stopSubs(); if(userUnsub){userUnsub();userUnsub=null;} if(metaUnsub){metaUnsub();metaUnsub=null;}
+  me=null; Z=[]; P=[];
+  if(!u){ show("login"); return; }
+  show("msg","Sprawdzam uprawnienia…");
+  let started=false;
+  metaUnsub=onSnapshot(doc(db,"meta","init"), s=>{ adminUid = s.exists()? (s.data().admin||"") : ""; if(me){ isAdmin = adminUid===me.uid; render(); } }, ()=>{});
+  userUnsub=onSnapshot(doc(db,"uzytkownicy",u.uid), s=>{
+    const k=s.exists()? s.data() : null;
+    if(!k){ if(s.metadata.fromCache) return; stopSubs(); started=false; show("msg","To konto nie ma dostępu do aplikacji."); return; }
+    if(k.rola!=="biuro"){ stopSubs(); started=false; show("msg","Kooperacje są dostępne tylko dla kont biura. Konto kierowcy nie ma tu dostępu."); return; }
+    if(k.aktywny===false){ stopSubs(); started=false; show("msg","To konto jest zablokowane w Truck App."); return; }
+    me={uid:u.uid, login:k.login||"", nazwa:k.nazwa||k.login||""};
+    isAdmin = adminUid===u.uid; canWrite=true;
+    show("app");
+    if(!started){ started=true; startData(); }
+    render();
+  }, x=>{ show("msg","Nie udało się sprawdzić konta: "+(x&&x.code||x)); });
+});
+</script>
+</body>
+</html>
