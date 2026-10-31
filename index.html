@@ -214,6 +214,39 @@ label input,label select,label textarea{width:100%}
 </style>
 </head>
 <body>
+<!-- Ekran startowy jak w Kalkulatorze stali: składający się kalendarz z ptaszkiem, potem płynne zniknięcie (sam CSS, działa nawet bez JS) -->
+<style>
+#splash{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#f2f3f1;animation:spl-out .45s ease 1.6s forwards}
+#splash .tile{width:132px;height:132px;border-radius:30px;background:#1f5f7a;display:grid;place-items:center;box-shadow:0 14px 34px rgba(27,35,32,.22);animation:spl-pop .45s cubic-bezier(.2,.9,.3,1.25) both}
+#splash svg{width:112px;height:112px;overflow:visible}
+#splash .card{transform-box:fill-box;transform-origin:center bottom;animation:spl-y .3s ease-out .2s both}
+#splash .top{transform-box:fill-box;transform-origin:left;animation:spl-x .3s ease-out .4s both}
+#splash .ring{transform-box:fill-box;transform-origin:top;animation:spl-y .2s ease-out .55s both}
+#splash .c{transform-box:fill-box;transform-origin:center;animation:spl-pop .22s ease-out both}
+#splash .c1{animation-delay:.68s}#splash .c2{animation-delay:.75s}#splash .c3{animation-delay:.82s}#splash .c4{animation-delay:.89s}#splash .c5{animation-delay:.96s}
+#splash .chk{stroke-dasharray:90;stroke-dashoffset:90;animation:spl-draw .3s ease-out 1.05s forwards}
+#splash .t{font:700 22px "IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;letter-spacing:.02em;color:#1b2320;text-align:center;animation:spl-up .4s ease-out 1s both}
+#splash .t small{display:block;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#5b6660;margin-bottom:2px}
+@keyframes spl-pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+@keyframes spl-x{from{transform:scaleX(0)}to{transform:none}}
+@keyframes spl-y{from{transform:scaleY(0)}to{transform:none}}
+@keyframes spl-up{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+@keyframes spl-draw{to{stroke-dashoffset:0}}
+@keyframes spl-out{to{opacity:0;visibility:hidden}}
+@media (prefers-color-scheme:dark){#splash{background:#131816}#splash .t{color:#e3e8e5}#splash .t small{color:#96a29c}}
+@media (prefers-reduced-motion:reduce){#splash,#splash *{animation:none!important}#splash .chk{stroke-dashoffset:0}#splash{animation:spl-out .3s ease .5s forwards!important}}
+</style>
+<div id="splash" aria-hidden="true">
+  <div class="tile"><svg viewBox="96 96 320 320">
+    <rect class="card" x="96" y="128" width="320" height="288" rx="24" fill="#fff"/>
+    <g class="top"><rect x="96" y="128" width="320" height="72" rx="24" fill="#c0621b"/><rect x="96" y="176" width="320" height="24" fill="#c0621b"/></g>
+    <rect class="ring" x="160" y="96" width="32" height="72" rx="12" fill="#fff"/><rect class="ring" x="320" y="96" width="32" height="72" rx="12" fill="#fff"/>
+    <g fill="#1f5f7a"><rect class="c c1" x="136" y="236" width="56" height="44" rx="6"/><rect class="c c2" x="228" y="236" width="56" height="44" rx="6"/><rect class="c c3" x="320" y="236" width="56" height="44" rx="6"/><rect class="c c4" x="136" y="316" width="56" height="44" rx="6"/><rect class="c c5" x="228" y="316" width="56" height="44" rx="6"/></g>
+    <path class="chk" d="M322 338l18 18 34-38" fill="none" stroke="#3c8a4a" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg></div>
+  <div class="t"><small>Odbiory od podwykonawców</small>Kooperacje</div>
+</div>
+<script>setTimeout(function(){var s=document.getElementById('splash');if(s)s.remove()},2300)</script>
 
 <!-- LOGOWANIE -->
 <section class="login" id="vLogin" hidden>
