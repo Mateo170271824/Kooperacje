@@ -151,11 +151,13 @@ tr.closed td{color:var(--muted)}
   .day.today .num{background:transparent;color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
   .day.sel{background:var(--accent)}
   .day.sel .num{color:var(--accent-fg);background:transparent;box-shadow:none}
-  .day.sel .dots{color:var(--accent-fg)}
-  .day.sel .dots i{box-shadow:0 0 0 1.5px var(--accent-fg)}
-  .day .dots{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;min-height:7px;font:600 10px/7px var(--f-body);color:var(--muted)}
-  .day .dots i{width:7px;height:7px;border-radius:50%;display:block}
-  .day .dots i.late{box-shadow:0 0 0 1.5px var(--bad)}
+  .day{justify-content:flex-start;min-height:78px}
+  .day .dots{display:flex;flex-direction:column;width:100%;padding:0 4px;gap:3px}
+  .day .chipn{display:block;font:700 10.5px/1 var(--f-body);font-style:normal;padding:3px 2px;border-radius:4px;text-align:center;background:var(--c);color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  .day .chipn.late{box-shadow:inset 0 0 0 2px var(--bad)}
+  .day .chipn.more{background:transparent;color:var(--muted);padding:0}
+  .day.sel .chipn{box-shadow:0 0 0 1.5px var(--accent-fg)}
+  .day.sel .chipn.more{color:var(--accent-fg);box-shadow:none}
   .calday{display:grid;gap:8px;padding:14px 12px 16px;border-top:1px solid var(--line);background:var(--bg)}
   .calday .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
   .calday h3{margin:0;font:600 18px/1.25 var(--f-display)}
@@ -613,7 +615,8 @@ function renderCal(){
       if(i===4) evs=evs.concat(list.filter(z=>z.data===addD(d,5)||z.data===addD(d,6)));
       evs.sort(byDate);
       const n=evs.length; byDay[day]=evs;
-      const dots=evs.slice(0,4).map(z=>{const a=alertOf(z); return `<i class="${a&&a[1]==="alert-late"?"late":""}" style="background:${supColor(z.podw)}"></i>`;}).join("")+(n>4?`+${n-4}`:"");
+      // telefon: do 2 pasków ze skrótem podwykonawcy, reszta jako „+n”
+      const dots=evs.slice(0,2).map(z=>{const a=alertOf(z); return `<em class="chipn ${a&&a[1]==="alert-late"?"late":""}" style="--c:${supColor(z.podw)}">${esc(supName(z.podw).split(/[-\s]/)[0].slice(0,5))}</em>`;}).join("")+(n>2?`<em class="chipn more">+${n-2}</em>`:"");
       h+=`<div class="day ${inM?"":"out"} ${day===t?"today":""} ${day===calSel?"sel":""} ${n?"":"blank"}" data-day="${day}" tabindex="0" aria-label="${DNI[pd(day).getDay()]} ${fD(day)}, zleceń: ${n}">
         <div class="dn"><b class="num">${+day.slice(8)}${day.slice(8)==="01"||(!inM&&day===addD(d,0))?`<small>${MIES_K[+day.slice(5,7)-1]}</small>`:""}</b><span class="cnt">${n? n+" "+(n===1?"zlecenie":(n<5?"zlecenia":"zleceń")):""}</span>${canWrite?`<button type="button" class="add" data-add="${day}" aria-label="Dodaj zlecenie na ${fD(day)}" title="Dodaj zlecenie na ten dzień">+ Dodaj</button>`:""}</div>
         <div class="dots">${dots}</div>
