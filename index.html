@@ -107,17 +107,40 @@ tr.closed td{color:var(--muted)}
 .day:hover{background:var(--sunk)}
 .day.out{background:var(--bg);color:var(--muted)}
 .day.today{box-shadow:inset 0 0 0 2px var(--accent)}
-.day .dn{display:flex;justify-content:space-between;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.day .dn{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.day .dn span{margin-left:auto}
+.day .dw{display:none}
+.day .add{flex:none;font:600 13px/1 var(--f-body);color:var(--accent);background:transparent;border:1px solid transparent;border-radius:4px;padding:3px 7px;cursor:pointer;opacity:0}
+.day:hover .add,.day:focus-within .add,.day .add:focus-visible{opacity:1;border-color:var(--line);background:var(--surface)}
+.day .add:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media (hover:none){.day .add{opacity:1;border-color:var(--line);background:var(--surface)}}
 .day.today .dn b{color:var(--accent)}
 .ev{display:block;text-align:left;width:100%;font:12.5px/1.3 var(--f-body);color:var(--fg);background:var(--sunk);border:0;border-left:3px solid var(--c7);border-radius:3px;padding:3px 5px;cursor:pointer;overflow-wrap:anywhere}
 .ev.late{color:var(--bad);font-weight:600}
 .ev.done{opacity:.55}
 .ev .we{font-size:11px;color:var(--muted)}
+.day .dots,.cal .h .hs{display:none}
+.calday{display:none}
 @media (max-width:700px){
-  .cal{grid-template-columns:minmax(0,1fr)}
-  .cal .h,.cal .wk{display:none}
-  .day{border-left:0;min-height:0}
-  .day.out,.day.blank{display:none}
+  .cal{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .cal .wk,.cal .wkh{display:none}
+  .cal .h{text-align:center;padding:6px 2px}
+  .cal .h .hl{display:none}
+  .cal .h .hs{display:inline}
+  .day{min-height:56px;padding:6px 4px;gap:5px;align-items:center}
+  .cal .day:nth-child(6n+2){border-left:0}
+  .day .dn{justify-content:center;font-size:15px}
+  .day .dn span,.day .add,.day .ev{display:none}
+  .day .dots{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;font-size:10.5px;line-height:8px;color:var(--muted)}
+  .day .dots i{width:8px;height:8px;border-radius:50%;display:block}
+  .day .dots i.late{box-shadow:0 0 0 2px var(--bad)}
+  .day.sel{background:var(--accent-soft)}
+  .day.sel .dn b{color:var(--accent)}
+  .calday{display:grid;gap:6px;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .calday .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .calday h3{margin:0;font:600 16px/1.3 var(--f-display)}
+  .calday .ev{font-size:14px;padding:8px 10px}
+  .calhint{display:none}
 }
 .mail{display:grid;gap:8px;padding:12px 14px;border-top:1px solid var(--line);background:var(--sunk)}
 .mail .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -238,8 +261,9 @@ label input,label select,label textarea{width:100%}
       </div>
     </div>
     <div class="cal" id="cal"></div>
+    <div class="calday" id="calDay"></div>
     <div class="legend" id="calLegend" style="padding-top:10px"></div>
-    <p class="small" style="margin:0;padding:0 14px 12px">Kliknij wpis, żeby go edytować, albo pusty fragment dnia, żeby dodać zlecenie na ten dzień. Zlecenia z soboty i niedzieli widać w piątku.</p>
+    <p class="small calhint" style="margin:0;padding:0 14px 12px">Kliknij wpis, żeby go edytować, albo pusty fragment dnia, żeby dodać zlecenie na ten dzień. Zlecenia z soboty i niedzieli widać w piątku.</p>
   </section>
 
   <section id="v-tydzien" class="panel" hidden>
@@ -436,7 +460,8 @@ function setTab(t){ tab=TABS.includes(t)?t:"pulpit"; for(const k of TABS) $("v-"
 document.querySelector("nav.tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-tab]"); if(b) setTab(b.dataset.tab); });
 setTab((location.hash||"").slice(1));
 
-let calMonth = today().slice(0,7), calSup="", calDone=true;
+let calMonth = today().slice(0,7), calSup="", calDone=true, calSel="";
+const narrow = () => matchMedia("(max-width:700px)").matches;
 let wkStart = monday(today()), wkSup="", wkShow="open";
 let zSup="", zStatus="", zQ="", zClosed=false;
 function fillSupSelect(el, val){ el.innerHTML = `<option value="">Wszyscy podwykonawcy</option>`+sortedP().map(p=>`<option value="${p.id}" ${p.id===val?"selected":""}>${esc(p.nazwa)}</option>`).join(""); }
@@ -542,7 +567,12 @@ function renderCal(){
   $("calTitle").textContent = MIES[m-1][0].toUpperCase()+MIES[m-1].slice(1)+" "+y;
   let d=monday(calMonth+"-01"); const last=iso(new Date(y,m,0)), t=today();
   const list=Z.filter(z=>z.data && (!calSup||z.podw===calSup) && (calDone || !closed(z)) && z.status!=="Anulowane");
-  let h=`<div class="h">Tydz.</div>`+["Poniedziałek","Wtorek","Środa","Czwartek","Piątek"].map(n=>`<div class="h">${n}</div>`).join("");
+    if(!calSel || calSel.slice(0,7)!==calMonth) calSel = today().slice(0,7)===calMonth ? today() : calMonth+"-01";
+  // weekend → najbliższy dzień roboczy w tym miesiącu
+  const wd=pd(calSel).getDay();
+  if(wd===6||wd===0){ const pon=addD(calSel, wd===6?2:1); calSel = pon.slice(0,7)===calMonth ? pon : addD(calSel, wd===6?-1:-2); }
+  const byDay={};
+  let h=`<div class="h wkh">Tydz.</div>`+[["Pn","Poniedziałek"],["Wt","Wtorek"],["Śr","Środa"],["Cz","Czwartek"],["Pt","Piątek"]].map(([a,b])=>`<div class="h"><span class="hs">${a}</span><span class="hl">${b}</span></div>`).join("");
   while(d<=last){
     h+=`<div class="wk">T${isoWeek(d)}</div>`;
     for(let i=0;i<5;i++){
@@ -550,14 +580,19 @@ function renderCal(){
       let evs=list.filter(z=>z.data===day);
       if(i===4) evs=evs.concat(list.filter(z=>z.data===addD(d,5)||z.data===addD(d,6)));
       evs.sort(byDate);
-      const n=evs.length;
-      h+=`<div class="day ${inM?"":"out"} ${day===t?"today":""} ${n?"":"blank"}" data-day="${day}" tabindex="0" aria-label="${DNI[pd(day).getDay()]} ${fD(day)}, zleceń: ${n}">
-        <div class="dn"><b>${fDs(day)}</b><span>${n? n+" "+(n===1?"zlecenie":(n<5?"zlecenia":"zleceń")):""}</span></div>
+      const n=evs.length; byDay[day]=evs;
+      const dots=evs.slice(0,4).map(z=>{const a=alertOf(z); return `<i class="${a&&a[1]==="alert-late"?"late":""}" style="background:${supColor(z.podw)}"></i>`;}).join("")+(n>4?`+${n-4}`:"");
+      h+=`<div class="day ${inM?"":"out"} ${day===t?"today":""} ${day===calSel?"sel":""} ${n?"":"blank"}" data-day="${day}" tabindex="0" aria-label="${DNI[pd(day).getDay()]} ${fD(day)}, zleceń: ${n}">
+        <div class="dn"><b><span class="dw">${DNI_K[pd(day).getDay()]} </span>${fDs(day)}</b><span>${n? n+" "+(n===1?"zlecenie":(n<5?"zlecenia":"zleceń")):""}</span>${canWrite?`<button type="button" class="add" data-add="${day}" aria-label="Dodaj zlecenie na ${fD(day)}" title="Dodaj zlecenie na ten dzień">+ Dodaj</button>`:""}</div>
+        <div class="dots">${dots}</div>
         ${evs.map(z=>evHtml(z, z.data!==day)).join("")}</div>`;
     }
     d=addD(d,7);
   }
   $("cal").innerHTML=h;
+  const se=byDay[calSel]||[];
+  $("calDay").innerHTML=`<div class="row"><h3>${DNI[pd(calSel).getDay()][0].toUpperCase()+DNI[pd(calSel).getDay()].slice(1)} ${fD(calSel)}</h3>${canWrite?`<button type="button" class="btn sm primary" data-add="${calSel}">+ Dodaj zlecenie</button>`:""}</div>`+
+    (se.length? se.map(z=>evHtml(z, z.data!==calSel)).join("") : `<span class="small">Brak zleceń w tym dniu.</span>`);
   $("calLegend").innerHTML=sortedP().map(p=>`<span><span class="sw" style="background:var(--c${p.kolor??7})"></span>${esc(p.nazwa)}</span>`).join("")+`<span style="color:var(--bad);font-weight:600">Po terminie = czerwony tekst</span>`;
 }
 
@@ -623,17 +658,19 @@ function renderSup(){
 /* ---------- akcje ---------- */
 document.addEventListener("click", e=>{
   const odb=e.target.closest("[data-odb]"); if (odb){ e.stopPropagation(); markOdebrane(odb.dataset.odb); return; }
+  const add=e.target.closest("[data-add]"); if (add){ if(canWrite) openZ(null,{data:add.dataset.add, podw:calSup}); return; }
   const ev=e.target.closest("[data-z]"); if (ev){ openZ(ev.dataset.z); return; }
-  const day=e.target.closest(".day[data-day]"); if(day && canWrite){ openZ(null,{data:day.dataset.day, podw:calSup}); return; }
+  const day=e.target.closest(".day[data-day]"); if(day && narrow()){ calSel=day.dataset.day; if(calSel.slice(0,7)!==calMonth) calMonth=calSel.slice(0,7); renderCal(); return; }
+  if(day && canWrite){ openZ(null,{data:day.dataset.day, podw:calSup}); return; }
   const s=e.target.closest("tr[data-s]"); if(s && isAdmin){ openS(s.dataset.s); return; }
   const rm=e.target.closest("[data-rmr]"); if(rm){ const r=rodzaje.slice(); r.splice(+rm.dataset.rmr,1); saveRodz(r); return; }
   const c=e.target.closest("[data-close]"); if(c) c.closest("dialog").close();
 });
-document.addEventListener("keydown", e=>{ if((e.key==="Enter"||e.key===" ") && e.target.classList?.contains("day")){ e.preventDefault(); if(canWrite) openZ(null,{data:e.target.dataset.day, podw:calSup}); } });
+document.addEventListener("keydown", e=>{ if((e.key==="Enter"||e.key===" ") && e.target.classList?.contains("day")){ e.preventDefault(); if(narrow()){ calSel=e.target.dataset.day; renderCal(); return; } if(canWrite) openZ(null,{data:e.target.dataset.day, podw:calSup}); } });
 $("btnNew").onclick=()=>openZ(null,{});
 $("btnNewSup").onclick=()=>openS(null);
 const mAdd=n=>{ const d=pd(calMonth+"-01"); d.setMonth(d.getMonth()+n); calMonth=iso(d).slice(0,7); renderCal(); };
-$("calPrev").onclick=()=>mAdd(-1); $("calNext").onclick=()=>mAdd(1); $("calToday").onclick=()=>{calMonth=today().slice(0,7); renderCal();};
+$("calPrev").onclick=()=>mAdd(-1); $("calNext").onclick=()=>mAdd(1); $("calToday").onclick=()=>{calMonth=today().slice(0,7); calSel=today(); renderCal();};
 $("calSup").onchange=e=>{calSup=e.target.value; renderCal();};
 $("calDone").onchange=e=>{calDone=e.target.checked; renderCal();};
 $("wkPrev").onclick=()=>{wkStart=addD(wkStart,-7); renderWeek();}; $("wkNext").onclick=()=>{wkStart=addD(wkStart,7); renderWeek();};
