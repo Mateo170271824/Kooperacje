@@ -107,7 +107,13 @@ tr.closed td{color:var(--muted)}
 .day:hover{background:var(--sunk)}
 .day.out{background:var(--bg);color:var(--muted)}
 .day.today{box-shadow:inset 0 0 0 2px var(--accent)}
-.day .dn{display:flex;justify-content:space-between;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.day .dn{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.day .dn span{margin-left:auto}
+.day .dw{display:none}
+.day .add{flex:none;font:600 13px/1 var(--f-body);color:var(--accent);background:transparent;border:1px solid transparent;border-radius:4px;padding:3px 7px;cursor:pointer;opacity:0}
+.day:hover .add,.day:focus-within .add,.day .add:focus-visible{opacity:1;border-color:var(--line);background:var(--surface)}
+.day .add:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media (hover:none){.day .add{opacity:1;border-color:var(--line);background:var(--surface)}}
 .day.today .dn b{color:var(--accent)}
 .ev{display:block;text-align:left;width:100%;font:12.5px/1.3 var(--f-body);color:var(--fg);background:var(--sunk);border:0;border-left:3px solid var(--c7);border-radius:3px;padding:3px 5px;cursor:pointer;overflow-wrap:anywhere}
 .ev.late{color:var(--bad);font-weight:600}
@@ -117,7 +123,10 @@ tr.closed td{color:var(--muted)}
   .cal{grid-template-columns:minmax(0,1fr)}
   .cal .h,.cal .wk{display:none}
   .day{border-left:0;min-height:0}
-  .day.out,.day.blank{display:none}
+  .day.out{display:none}
+  .day .dw{display:inline}
+  .day .dn{font-size:13px}
+  .day .add{opacity:1;border-color:var(--line);background:var(--surface);padding:6px 12px}
 }
 .mail{display:grid;gap:8px;padding:12px 14px;border-top:1px solid var(--line);background:var(--sunk)}
 .mail .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -552,7 +561,7 @@ function renderCal(){
       evs.sort(byDate);
       const n=evs.length;
       h+=`<div class="day ${inM?"":"out"} ${day===t?"today":""} ${n?"":"blank"}" data-day="${day}" tabindex="0" aria-label="${DNI[pd(day).getDay()]} ${fD(day)}, zleceń: ${n}">
-        <div class="dn"><b>${fDs(day)}</b><span>${n? n+" "+(n===1?"zlecenie":(n<5?"zlecenia":"zleceń")):""}</span></div>
+        <div class="dn"><b><span class="dw">${DNI_K[pd(day).getDay()]} </span>${fDs(day)}</b><span>${n? n+" "+(n===1?"zlecenie":(n<5?"zlecenia":"zleceń")):""}</span>${canWrite?`<button type="button" class="add" data-add="${day}" aria-label="Dodaj zlecenie na ${fD(day)}" title="Dodaj zlecenie na ten dzień">+ Dodaj</button>`:""}</div>
         ${evs.map(z=>evHtml(z, z.data!==day)).join("")}</div>`;
     }
     d=addD(d,7);
@@ -623,6 +632,7 @@ function renderSup(){
 /* ---------- akcje ---------- */
 document.addEventListener("click", e=>{
   const odb=e.target.closest("[data-odb]"); if (odb){ e.stopPropagation(); markOdebrane(odb.dataset.odb); return; }
+  const add=e.target.closest("[data-add]"); if (add){ if(canWrite) openZ(null,{data:add.dataset.add, podw:calSup}); return; }
   const ev=e.target.closest("[data-z]"); if (ev){ openZ(ev.dataset.z); return; }
   const day=e.target.closest(".day[data-day]"); if(day && canWrite){ openZ(null,{data:day.dataset.day, podw:calSup}); return; }
   const s=e.target.closest("tr[data-s]"); if(s && isAdmin){ openS(s.dataset.s); return; }
