@@ -100,48 +100,78 @@ tr.closed td{color:var(--muted)}
 .chart{padding:12px 14px}
 .chart svg{display:block;width:100%;height:auto;max-width:100%}
 .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted);padding:0 14px 12px}
-.cal{display:grid;grid-template-columns:44px repeat(5,minmax(0,1fr));border-top:1px solid var(--line)}
-.cal .h{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:7px 8px;background:var(--sunk);border-bottom:1px solid var(--line)}
-.cal .wk{font-family:var(--f-mono);font-size:12px;color:var(--muted);padding:8px 6px;border-bottom:1px solid var(--line);background:var(--sunk)}
-.day{border-left:1px solid var(--line);border-bottom:1px solid var(--line);min-height:96px;padding:6px;display:flex;flex-direction:column;gap:4px;cursor:pointer;min-width:0;background:var(--surface)}
+.calhd{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
+.calnav{display:flex;align-items:center;gap:8px}
+.calnav h2{min-width:190px;text-align:center;font-size:20px}
+.calnav .rb{width:36px;height:36px;border-radius:50%;padding:0;justify-content:center;font-size:20px;line-height:1}
+.calfil{display:flex;flex-wrap:nowrap;gap:8px;align-items:center}
+.calfil select{flex:0 1 240px;min-width:0}
+.calfil .chk{display:inline-flex;white-space:nowrap;gap:6px;align-items:center;font-size:13px;color:var(--fg);padding:6px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;user-select:none}
+.calfil .chk input{width:auto;margin:0;accent-color:var(--accent)}
+.cal{display:grid;grid-template-columns:40px repeat(5,minmax(0,1fr))}
+.cal .h{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:9px 8px 7px;border-bottom:1px solid var(--line)}
+.cal .wk{font-family:var(--f-mono);font-size:11px;color:var(--muted);padding:10px 4px;text-align:center;border-bottom:1px solid var(--line)}
+.day{border-left:1px solid var(--line);border-bottom:1px solid var(--line);min-height:104px;padding:6px 6px 8px;display:flex;flex-direction:column;gap:4px;cursor:pointer;min-width:0;background:var(--surface);transition:background .12s}
 .day:hover{background:var(--sunk)}
-.day.out{background:var(--bg);color:var(--muted)}
-.day.today{box-shadow:inset 0 0 0 2px var(--accent)}
-.day .dn{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
-.day .dn span{margin-left:auto}
-.day .dw{display:none}
-.day .add{flex:none;font:600 13px/1 var(--f-body);color:var(--accent);background:transparent;border:1px solid transparent;border-radius:4px;padding:3px 7px;cursor:pointer;opacity:0}
-.day:hover .add,.day:focus-within .add,.day .add:focus-visible{opacity:1;border-color:var(--line);background:var(--surface)}
-.day .add:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-@media (hover:none){.day .add{opacity:1;border-color:var(--line);background:var(--surface)}}
-.day.today .dn b{color:var(--accent)}
-.ev{display:block;text-align:left;width:100%;font:12.5px/1.3 var(--f-body);color:var(--fg);background:var(--sunk);border:0;border-left:3px solid var(--c7);border-radius:3px;padding:3px 5px;cursor:pointer;overflow-wrap:anywhere}
+.day.out{background:var(--bg)}
+.day.out .num{color:var(--muted);opacity:.6}
+.day .dn{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);min-height:28px}
+.day .num{display:inline-flex;align-items:baseline;justify-content:center;padding-top:7px !important;box-sizing:border-box;min-width:28px;height:28px;padding:0 4px;border-radius:999px;font:600 14px/1 var(--f-body);color:var(--fg);font-variant-numeric:tabular-nums}
+.day .num small{font-weight:500;font-size:11px;color:var(--muted);margin-left:3px}
+.day.today .num{background:var(--accent);color:var(--accent-fg)}
+.day.today .num small{color:inherit}
+.day .cnt{margin-left:auto}
+.day .add{flex:none;font:600 12.5px/1 var(--f-body);color:var(--accent);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 9px;cursor:pointer;opacity:0;transition:opacity .12s}
+.day:hover .add,.day:focus-within .add,.day .add:focus-visible{opacity:1}
+.day .add:hover{border-color:var(--accent)}
+@media (hover:none){.day .add{opacity:1}}
+.ev{display:block;text-align:left;width:100%;font:500 12.5px/1.3 var(--f-body);color:var(--fg);background:color-mix(in srgb,var(--c,var(--c7)) 13%,var(--surface));border:0;border-left:3px solid var(--c,var(--c7));border-radius:4px;padding:4px 6px;cursor:pointer;overflow-wrap:anywhere}
+.ev:hover{background:color-mix(in srgb,var(--c,var(--c7)) 22%,var(--surface))}
 .ev.late{color:var(--bad);font-weight:600}
-.ev.done{opacity:.55}
-.ev .we{font-size:11px;color:var(--muted)}
-.day .dots,.cal .h .hs{display:none}
-.calday{display:none}
+.ev.done{opacity:.55;text-decoration:line-through}
+.ev .we{font-size:11px;color:var(--muted);font-weight:400}
+.day .dots,.cal .h .hs,.calday{display:none}
 @media (max-width:700px){
-  .cal{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .calhd{padding:12px}
+  .calnav,.calfil{flex:1 1 100%}
+  .calnav h2{flex:1;min-width:0;font-size:19px}
+  .calfil select{flex:1 1 140px}
+  .cal{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;padding:8px 8px 10px}
   .cal .wk,.cal .wkh{display:none}
-  .cal .h{text-align:center;padding:6px 2px}
+  .cal .h{text-align:center;padding:2px 0 6px;border:0;font-size:11px}
   .cal .h .hl{display:none}
   .cal .h .hs{display:inline}
-  .day{min-height:56px;padding:6px 4px;gap:5px;align-items:center}
-  .cal .day:nth-child(6n+2){border-left:0}
-  .day .dn{justify-content:center;font-size:15px}
-  .day .dn span,.day .add,.day .ev{display:none}
-  .day .dots{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;font-size:10.5px;line-height:8px;color:var(--muted)}
-  .day .dots i{width:8px;height:8px;border-radius:50%;display:block}
-  .day .dots i.late{box-shadow:0 0 0 2px var(--bad)}
-  .day.sel{background:var(--accent-soft)}
-  .day.sel .dn b{color:var(--accent)}
-  .calday{display:grid;gap:6px;padding:12px 14px;border-bottom:1px solid var(--line)}
-  .calday .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .calday h3{margin:0;font:600 16px/1.3 var(--f-display)}
-  .calday .ev{font-size:14px;padding:8px 10px}
+  .day{min-height:62px;padding:6px 2px;gap:6px;align-items:center;border:0;border-radius:12px;background:var(--sunk)}
+  .day:hover{background:var(--sunk)}
+  .day.out{background:transparent}
+  .day .dn{justify-content:center;min-height:0}
+  .day .num{min-width:32px;height:32px;font-size:16px}
+  .day .num small,.day .cnt,.day .add,.day .ev{display:none}
+  .day.today .num{background:transparent;color:var(--accent);box-shadow:inset 0 0 0 2px var(--accent)}
+  .day.sel{background:var(--accent)}
+  .day.sel .num{color:var(--accent-fg);background:transparent;box-shadow:none}
+  .day.sel .dots{color:var(--accent-fg)}
+  .day.sel .dots i{box-shadow:0 0 0 1.5px var(--accent-fg)}
+  .day .dots{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;min-height:7px;font:600 10px/7px var(--f-body);color:var(--muted)}
+  .day .dots i{width:7px;height:7px;border-radius:50%;display:block}
+  .day .dots i.late{box-shadow:0 0 0 1.5px var(--bad)}
+  .calday{display:grid;gap:8px;padding:14px 12px 16px;border-top:1px solid var(--line);background:var(--bg)}
+  .calday .row{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .calday h3{margin:0;font:600 18px/1.25 var(--f-display)}
+  .calday .row .small{color:var(--muted)}
+  .calday .addbig{justify-content:center;padding:11px;font-size:15px;border-radius:10px}
+  .calday .empty{display:grid;place-items:center;padding:18px 10px;color:var(--muted);border:1px dashed var(--line);border-radius:10px;font-size:13.5px}
   .calhint{display:none}
+  #calLegend{padding:10px 12px 14px}
 }
+.zc{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;width:100%;font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px 10px 0;cursor:pointer;overflow:hidden}
+.zc:active{background:var(--sunk)}
+.zc .bar{align-self:stretch;margin:-10px 0;background:var(--c,var(--c7))}
+.zc .sup{display:block;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.02em}
+.zc .t{display:block;font-size:15px;font-weight:600;overflow-wrap:anywhere}
+.zc .m{display:block;font-size:12.5px;color:var(--muted)}
+.zc.late .t{color:var(--bad)}
+.zc.done{opacity:.6}
 .mail{display:grid;gap:8px;padding:12px 14px;border-top:1px solid var(--line);background:var(--sunk)}
 .mail .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .mail code{font-family:var(--f-mono);font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:2px 6px;user-select:all;overflow-wrap:anywhere}
@@ -248,16 +278,16 @@ label input,label select,label textarea{width:100%}
   </section>
 
   <section id="v-kalendarz" class="panel" hidden>
-    <div class="hd">
-      <div class="toolbar">
-        <button class="btn sm" type="button" id="calPrev" aria-label="Poprzedni miesiąc">‹</button>
-        <h2 id="calTitle" style="min-width:150px;text-align:center"></h2>
-        <button class="btn sm" type="button" id="calNext" aria-label="Następny miesiąc">›</button>
+    <div class="calhd">
+      <div class="calnav">
+        <button class="btn rb" type="button" id="calPrev" aria-label="Poprzedni miesiąc">‹</button>
+        <h2 id="calTitle"></h2>
+        <button class="btn rb" type="button" id="calNext" aria-label="Następny miesiąc">›</button>
         <button class="btn sm" type="button" id="calToday">Dziś</button>
       </div>
-      <div class="toolbar">
+      <div class="calfil">
         <select id="calSup" aria-label="Podwykonawca"></select>
-        <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--fg)"><input type="checkbox" id="calDone" checked> Pokaż odebrane</label>
+        <label class="chk"><input type="checkbox" id="calDone" checked> Pokaż odebrane</label>
       </div>
     </div>
     <div class="cal" id="cal"></div>
@@ -409,6 +439,7 @@ const POLA_NAZWY = {data:"data odbioru",podw:"podwykonawca",nr:"nr zlecenia",opi
 const DNI = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
 const DNI_K = ["nd","pn","wt","śr","cz","pt","sb"];
 const MIES = ["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","sierpień","wrzesień","październik","listopad","grudzień"];
+const MIES_D = ["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"];
 const MIES_K = ["sty","lut","mar","kwi","maj","cze","lip","sie","wrz","paź","lis","gru"];
 
 let Z = [], P = [], rodzaje = RODZAJE_DOMYSLNE.slice();
@@ -559,7 +590,7 @@ function renderPulpit(){
 function evHtml(z, showDate){
   const a=alertOf(z), late=a&&a[1]==="alert-late";
   const label=[z.nr, z.opis].filter(Boolean).join(" · ") || z.rodzaj || "zlecenie";
-  return `<button type="button" class="ev ${late?"late":""} ${closed(z)?"done":""}" data-z="${z.id}" style="border-left-color:${supColor(z.podw)}" title="${esc(supName(z.podw))} · ${esc(z.status)}">${showDate?`<span class="we">${DNI_K[pd(z.data).getDay()]} ${fDs(z.data)} · </span>`:""}${esc(label)}</button>`;
+  return `<button type="button" class="ev ${late?"late":""} ${closed(z)?"done":""}" data-z="${z.id}" style="--c:${supColor(z.podw)}" title="${esc(supName(z.podw))} · ${esc(z.status)}">${showDate?`<span class="we">${DNI_K[pd(z.data).getDay()]} ${fDs(z.data)} · </span>`:""}${esc(label)}</button>`;
 }
 function renderCal(){
   fillSupSelect($("calSup"), calSup);
@@ -583,7 +614,7 @@ function renderCal(){
       const n=evs.length; byDay[day]=evs;
       const dots=evs.slice(0,4).map(z=>{const a=alertOf(z); return `<i class="${a&&a[1]==="alert-late"?"late":""}" style="background:${supColor(z.podw)}"></i>`;}).join("")+(n>4?`+${n-4}`:"");
       h+=`<div class="day ${inM?"":"out"} ${day===t?"today":""} ${day===calSel?"sel":""} ${n?"":"blank"}" data-day="${day}" tabindex="0" aria-label="${DNI[pd(day).getDay()]} ${fD(day)}, zleceń: ${n}">
-        <div class="dn"><b><span class="dw">${DNI_K[pd(day).getDay()]} </span>${fDs(day)}</b><span>${n? n+" "+(n===1?"zlecenie":(n<5?"zlecenia":"zleceń")):""}</span>${canWrite?`<button type="button" class="add" data-add="${day}" aria-label="Dodaj zlecenie na ${fD(day)}" title="Dodaj zlecenie na ten dzień">+ Dodaj</button>`:""}</div>
+        <div class="dn"><b class="num">${+day.slice(8)}${day.slice(8)==="01"||(!inM&&day===addD(d,0))?`<small>${MIES_K[+day.slice(5,7)-1]}</small>`:""}</b><span class="cnt">${n? n+" "+(n===1?"zlecenie":(n<5?"zlecenia":"zleceń")):""}</span>${canWrite?`<button type="button" class="add" data-add="${day}" aria-label="Dodaj zlecenie na ${fD(day)}" title="Dodaj zlecenie na ten dzień">+ Dodaj</button>`:""}</div>
         <div class="dots">${dots}</div>
         ${evs.map(z=>evHtml(z, z.data!==day)).join("")}</div>`;
     }
@@ -591,8 +622,13 @@ function renderCal(){
   }
   $("cal").innerHTML=h;
   const se=byDay[calSel]||[];
-  $("calDay").innerHTML=`<div class="row"><h3>${DNI[pd(calSel).getDay()][0].toUpperCase()+DNI[pd(calSel).getDay()].slice(1)} ${fD(calSel)}</h3>${canWrite?`<button type="button" class="btn sm primary" data-add="${calSel}">+ Dodaj zlecenie</button>`:""}</div>`+
-    (se.length? se.map(z=>evHtml(z, z.data!==calSel)).join("") : `<span class="small">Brak zleceń w tym dniu.</span>`);
+  const nm=DNI[pd(calSel).getDay()];
+  const zc=z=>{ const a=alertOf(z), late=a&&a[1]==="alert-late";
+    return `<button type="button" class="zc ${late?"late":""} ${closed(z)?"done":""}" data-z="${z.id}" style="--c:${supColor(z.podw)}"><span class="bar"></span>
+      <span><span class="sup">${esc(supName(z.podw))}${z.data!==calSel?` · ${DNI_K[pd(z.data).getDay()]} ${fDs(z.data)}`:""}</span><span class="t">${esc([z.nr,z.opis].filter(Boolean).join(" · ")||z.rodzaj||"zlecenie")}</span>${z.rodzaj||z.ilosc?`<span class="m">${esc([z.rodzaj, z.ilosc!=null&&z.ilosc!==""?z.ilosc+" szt.":""].filter(Boolean).join(" · "))}</span>`:""}</span>${pill(z.status)}</button>`; };
+  $("calDay").innerHTML=`<div class="row"><h3>${nm[0].toUpperCase()+nm.slice(1)}, ${+calSel.slice(8)} ${MIES_D[+calSel.slice(5,7)-1]}</h3><span class="small">${se.length? se.length+" "+(se.length===1?"zlecenie":(se.length<5?"zlecenia":"zleceń")):""}</span></div>`+
+    (se.length? se.map(zc).join("") : `<div class="empty">Brak odbiorów w tym dniu</div>`)+
+    (canWrite?`<button type="button" class="btn primary addbig" data-add="${calSel}">+ Dodaj zlecenie na ten dzień</button>`:"");
   $("calLegend").innerHTML=sortedP().map(p=>`<span><span class="sw" style="background:var(--c${p.kolor??7})"></span>${esc(p.nazwa)}</span>`).join("")+`<span style="color:var(--bad);font-weight:600">Po terminie = czerwony tekst</span>`;
 }
 
