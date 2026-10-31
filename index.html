@@ -216,13 +216,13 @@ label input,label select,label textarea{width:100%}
 <body>
 <!-- Ekran startowy jak w Kalkulatorze stali: dwa koła zębate (firma i podwykonawca) obracają się i zazębiają, potem płynne zniknięcie (sam CSS, działa nawet bez JS) -->
 <style>
-#splash{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#f2f3f1;animation:spl-out .45s ease 1.6s forwards}
+#splash{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#f2f3f1;animation:spl-out .5s ease 3.2s forwards}
 #splash .tile{width:132px;height:132px;border-radius:30px;background:#1f5f7a;display:grid;place-items:center;box-shadow:0 14px 34px rgba(27,35,32,.22);animation:spl-pop .45s cubic-bezier(.2,.9,.3,1.25) both}
 #splash svg{width:118px;height:118px;overflow:visible}
 #splash .g{transform-box:view-box;transform-origin:0 0}
 #splash .g1{animation:spl-r1 1.1s cubic-bezier(.3,.7,.3,1) .15s both}
 #splash .g2{animation:spl-r2 1.1s cubic-bezier(.3,.7,.3,1) .15s both}
-#splash .t{font:700 22px "IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;letter-spacing:.02em;color:#1b2320;text-align:center;animation:spl-up .4s ease-out 1s both}
+#splash .t{font:700 22px "IBM Plex Sans Condensed","Arial Narrow",Arial,sans-serif;letter-spacing:.02em;color:#1b2320;text-align:center;animation:spl-up .4s ease-out .8s both}
 #splash .t small{display:block;font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#5b6660;margin-bottom:2px}
 @keyframes spl-pop{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
 @keyframes spl-r1{from{transform:rotate(-120deg);opacity:0}15%{opacity:1}to{transform:none}}
@@ -239,7 +239,7 @@ label input,label select,label textarea{width:100%}
   </svg></div>
   <div class="t"><small>Odbiory od podwykonawców</small>Kooperacje</div>
 </div>
-<script>setTimeout(function(){var s=document.getElementById('splash');if(s)s.remove()},2300)</script>
+<script>(function(){var s=document.getElementById('splash');if(!s)return;var x=function(){if(s.parentNode)s.remove()};s.addEventListener('click',x);setTimeout(x,3900)})()</script>
 
 <!-- LOGOWANIE -->
 <section class="login" id="vLogin" hidden>
