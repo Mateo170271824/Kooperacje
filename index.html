@@ -355,7 +355,7 @@ label input,label select,label textarea{width:100%}
         <button class="btn sm" type="button" id="btnCsv">Eksportuj do Excela (CSV)</button>
       </div>
     </div>
-    <div class="tablebox"><table class="wide"><thead><tr><th>Data odbioru</th><th>Dzień</th><th>Tydz.</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość [szt]</th><th>Status</th><th>Odebrano dnia</th><th>Alert</th><th>Uwagi</th><th>Ostatnia zmiana</th><th></th></tr></thead><tbody id="zRows"></tbody></table></div>
+    <div class="tablebox"><table class="wide"><thead><tr><th>Data odbioru</th><th>Dzień</th><th>Tydz.</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość [szt]</th><th id="thWartosc" hidden>Wartość zamówienia</th><th>Status</th><th>Odebrano dnia</th><th>Alert</th><th>Uwagi</th><th>Ostatnia zmiana</th><th></th></tr></thead><tbody id="zRows"></tbody></table></div>
     <div class="empty" id="zEmpty" hidden></div>
   </section>
 
@@ -375,9 +375,9 @@ label input,label select,label textarea{width:100%}
 
   <section id="v-dostep" class="panel" hidden>
     <div class="hd"><h2>Dostęp do Kooperacji</h2><span class="small">konta biura z Truck App</span></div>
-    <div class="tablebox"><table><thead><tr><th>Osoba</th><th>Login</th><th>Konto w Truck App</th><th>Kooperacje</th></tr></thead><tbody id="dRows"></tbody></table></div>
+    <div class="tablebox"><table><thead><tr><th>Osoba</th><th>Login</th><th>Konto w Truck App</th><th>Kooperacje</th><th>Zakupowiec</th></tr></thead><tbody id="dRows"></tbody></table></div>
     <div class="empty" id="dEmpty" hidden></div>
-    <p class="small" style="margin:0;padding:10px 14px 12px">Nowe konto biura zakładasz w Truck App (Dostęp do aplikacji). Dostaje ono Kooperacje automatycznie, a tutaj możesz je wyłączyć. Kierowcy nie mają dostępu do Kooperacji. Zablokowanie konta w Truck App odcina też Kooperacje.</p>
+    <p class="small" style="margin:0;padding:10px 14px 12px">Nowe konto biura zakładasz w Truck App (Dostęp do aplikacji). Dostaje ono Kooperacje automatycznie, a tutaj możesz je wyłączyć. Zaznaczenie „Zakupowiec” daje dostęp do wartości zamówień. Kwoty są przechowywane oddzielnie i dostępne wyłącznie administratorowi oraz zakupowcom. Kierowcy nie mają dostępu do Kooperacji. Zablokowanie konta w Truck App odcina też Kooperacje.</p>
   </section>
 </div>
 
@@ -392,6 +392,7 @@ label input,label select,label textarea{width:100%}
       <label>Rodzaj<select id="z_rodzaj"></select></label>
       <label class="full">Element / opis<input id="z_opis" placeholder="np. Uszka mobilne do belki"></label>
       <label>Ilość [szt]<input id="z_ilosc" type="number" min="0" step="1"></label>
+      <label id="zWartoscWrap" hidden>Wartość zamówienia [zł]<input id="z_wartosc" type="number" min="0" step="0.01" inputmode="decimal" placeholder="np. 1250,00"></label>
       <label>Status<select id="z_status"></select></label>
       <label>Odebrano dnia<input id="z_odebrano" type="date"></label>
       <label class="full">Uwagi<textarea id="z_uwagi" rows="2" placeholder="np. poz. 117, pilne"></textarea></label>
@@ -454,7 +455,7 @@ const db = getFirestore(fbApp);
 const normLogin = t => String(t||"").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ł/g,"l").replace(/[^a-z0-9._-]+/g,".").replace(/^\.+|\.+$/g,"");
 const loginEmail = t => normLogin(t) + "@konta." + firebaseConfig.authDomain;
 
-const C = { z:"koop_zlecenia", p:"koop_podwykonawcy", u:"koop_ustawienia", kosz:"koop_kosz" };
+const C = { z:"koop_zlecenia", p:"koop_podwykonawcy", u:"koop_ustawienia", kosz:"koop_kosz", v:"koop_wartosci" };
 const $ = id => document.getElementById(id);
 const STATUSY = ["Zlecone","W realizacji","Gotowe do odbioru","Odebrane","Anulowane"];
 const RODZAJE_DOMYSLNE = ["Rynny","Kątowniki","Ceowniki","Uszka mobilne","Elementy zimnogięte","Blachy i obróbki","Bramy","Inne"];
@@ -471,10 +472,12 @@ const MIES = ["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","
 const MIES_D = ["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"];
 const MIES_K = ["sty","lut","mar","kwi","maj","cze","lip","sie","wrz","paź","lis","gru"];
 
-let Z = [], P = [], rodzaje = RODZAJE_DOMYSLNE.slice();
+let Z = [], P = [], V = {}, rodzaje = RODZAJE_DOMYSLNE.slice();
 let me = null;               // {uid, login, nazwa, admin}
 let subs = [];
-let canWrite = false, isAdmin = false;
+let canWrite = false, isAdmin = false, isBuyer = false;
+const canSeeAmounts = () => isAdmin || isBuyer;
+const moneyText = v => v==null || v==="" ? "—" : Number(v).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2})+" zł";
 
 /* ---------- daty ---------- */
 function iso(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -530,7 +533,7 @@ function render(){
   if (!me) return;
   const t=today();
   $("stan").textContent = `Stan na ${fD(t)} · tydzień ${isoWeek(t)}`;
-  $("who").innerHTML = `<span>Zalogowany: <b>${esc(me.nazwa||me.login)}</b>${isAdmin?" · administrator":""}</span>`;
+  $("who").innerHTML = `<span>Zalogowany: <b>${esc(me.nazwa||me.login)}</b>${isAdmin?" · administrator":isBuyer?" · zakupowiec":""}</span>`;
   $("btnNew").hidden=!canWrite; $("btnNewSup").hidden=!isAdmin; $("fRodz").hidden=!isAdmin; $("sHint").hidden=isAdmin;
   $("btnSeed").hidden = !(isAdmin && P.length===0);
   $("tabDostep").hidden = !isAdmin;
@@ -547,8 +550,11 @@ function renderDostep(){
     const adm = k.uid===adminUid, ma = adm || k.kooperacje!==false;
     const ctl = adm? `<span class="pill st-Odebrane">Tak · administrator</span>`
       : `<label style="display:flex;gap:8px;align-items:center;color:var(--fg);font-size:13px"><input type="checkbox" data-dost="${k.uid}" ${ma?"checked":""}> ${ma?"Ma dostęp":"Brak dostępu"}</label>`;
+    const buyer = k.koopZakupowiec===true;
+    const buyerCtl = adm ? `<span class="pill st-Odebrane">Tak · administrator</span>`
+      : `<label style="display:flex;gap:8px;align-items:center;color:var(--fg);font-size:13px"><input type="checkbox" data-buyer="${k.uid}" ${buyer?"checked":""}> ${buyer?"Ma uprawnienie":"Brak uprawnienia"}</label>`;
     return `<tr class="${k.aktywny===false?"closed":""}"><td class="strong">${esc(k.nazwa||k.login)}${k.uid===me.uid?' <span class="small">(Ty)</span>':""}</td><td class="mono">${esc(k.login)}</td>
-      <td>${k.aktywny===false?'<span class="pill st-Anulowane">Zablokowane</span>':'<span class="pill st-W">Aktywne</span>'}</td><td>${ctl}</td></tr>`;
+      <td>${k.aktywny===false?'<span class="pill st-Anulowane">Zablokowane</span>':'<span class="pill st-W">Aktywne</span>'}</td><td>${ctl}</td><td>${buyerCtl}</td></tr>`;
   }).join("");
   const e=$("dEmpty"); e.hidden=!!list.length; e.innerHTML="<span>Wczytywanie kont…</span>";
 }
@@ -557,6 +563,14 @@ document.addEventListener("change", async e=>{
   const uid=c.dataset.dost, on=c.checked, k=K.find(x=>x.uid===uid);
   c.disabled=true;
   try{ await updateDoc(doc(db,"uzytkownicy",uid), {kooperacje:on}); toast((k?.nazwa||k?.login||"Konto")+(on?" – ma dostęp do Kooperacji":" – nie ma już dostępu do Kooperacji")); }
+  catch(x){ c.checked=!on; failed(x); }
+  finally{ c.disabled=false; }
+});
+document.addEventListener("change", async e=>{
+  const c=e.target.closest("input[data-buyer]"); if(!c || !isAdmin) return;
+  const uid=c.dataset.buyer, on=c.checked, k=K.find(x=>x.uid===uid);
+  c.disabled=true;
+  try{ await updateDoc(doc(db,"uzytkownicy",uid), {koopZakupowiec:on}); toast((k?.nazwa||k?.login||"Konto")+(on?" – nadano uprawnienie Zakupowiec":" – odebrano uprawnienie Zakupowiec")); }
   catch(x){ c.checked=!on; failed(x); }
   finally{ c.disabled=false; }
 });
@@ -673,7 +687,7 @@ function renderWeek(){
     const a=alertOf(z);
     h+=`<tr class="click ${a&&a[1]==="alert-late"?"late":""} ${closed(z)?"closed":""}" data-z="${z.id}"><td class="small">${DNI_K[pd(z.data).getDay()]}</td>
       <td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td>
-      <td class="num">${z.ilosc??""}</td><td>${pill(z.status)}</td><td class="small">${esc(z.uwagi)}</td></tr>`;
+      <td class="num">${z.ilosc??""}</td>${canSeeAmounts()?`<td class="num">${moneyText(V[z.id]?.wartosc)}</td>`:""}<td>${pill(z.status)}</td><td class="small">${esc(z.uwagi)}</td></tr>`;
   }
   $("wkRows").innerHTML=h;
   const e=$("wkEmpty"); e.hidden=!!list.length; e.innerHTML=`<span>Brak ${wkShow==="open"?"otwartych ":""}odbiorów w tym tygodniu.</span>`;
@@ -699,6 +713,7 @@ async function copyText(txt,msg){ try{ await navigator.clipboard.writeText(txt);
 
 function renderZ(){
   fillSupSelect($("zSup"), zSup);
+  $("thWartosc").hidden=!canSeeAmounts();
   $("zStatus").innerHTML=`<option value="">Każdy status</option>`+STATUSY.map(s=>`<option ${s===zStatus?"selected":""}>${s}</option>`).join("");
   const q=zQ.trim().toLowerCase();
   const list=Z.filter(z=>(!zSup||z.podw===zSup) && (!zStatus||z.status===zStatus) && (zClosed||zStatus||!closed(z)) &&
@@ -706,7 +721,7 @@ function renderZ(){
   $("zRows").innerHTML=list.map(z=>{const a=alertOf(z); return `<tr class="click ${a&&a[1]==="alert-late"?"late":""} ${closed(z)?"closed":""}" data-z="${z.id}">
     <td class="mono">${fD(z.data)}</td><td class="small">${z.data?DNI_K[pd(z.data).getDay()]:""}</td><td class="mono">${z.data?isoWeek(z.data):""}</td>
     <td style="white-space:nowrap"><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td>
-    <td class="num">${z.ilosc??""}</td><td>${pill(z.status)}</td><td class="mono">${fD(z.odebrano)}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td><td class="small">${esc(z.uwagi)}</td>
+    <td class="num">${z.ilosc??""}</td>${canSeeAmounts()?`<td class="num">${moneyText(V[z.id]?.wartosc)}</td>`:""}<td>${pill(z.status)}</td><td class="mono">${fD(z.odebrano)}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td><td class="small">${esc(z.uwagi)}</td>
     <td class="small" style="white-space:nowrap">${esc(z.zmienilNazwa||"")}<br>${fTs(z.zmieniono)}</td>
     <td>${canWrite&&!closed(z)?`<button class="btn sm" type="button" data-odb="${z.id}">Odebrane</button>`:""}</td></tr>`;}).join("");
   const e=$("zEmpty"); e.hidden=!!list.length;
@@ -765,7 +780,7 @@ async function saveZ(id, data, expectedWersja, force){
     if (cur) tx.update(ref, {...data, ...kto, wersja:(cur.wersja||0)+1});
     else tx.set(ref, {...data, ...kto, utworzono:serverTimestamp(), utworzyl:me.uid, utworzylNazwa:me.nazwa||me.login, wersja:1});
     tx.set(doc(collection(ref,"historia")), {kiedy:serverTimestamp(), kto:me.uid, nazwa:me.nazwa||me.login, akcja:cur?"zmiana":"utworzenie", zmiany});
-    return {ok:true, nowy:!cur};
+    return {ok:true, nowy:!cur, id:ref.id};
   });
 }
 
@@ -773,6 +788,7 @@ let zId=null, zWersja=0;
 function fillZ(v){
   $("z_data").value=v.data||""; $("z_podw").value=v.podw||""; $("z_nr").value=v.nr||""; $("z_rodzaj").value=v.rodzaj||"";
   $("z_opis").value=v.opis||""; $("z_ilosc").value=v.ilosc??""; $("z_status").value=v.status||"Zlecone"; $("z_odebrano").value=v.odebrano||""; $("z_uwagi").value=v.uwagi||"";
+  $("z_wartosc").value=zId && V[zId]?.wartosc!=null ? V[zId].wartosc : "";
 }
 function openZ(id, preset){
   const z = id? Z.find(x=>x.id===id) : null;
@@ -787,7 +803,9 @@ function openZ(id, preset){
   $("z_status").innerHTML=STATUSY.map(s=>`<option>${s}</option>`).join("");
   fillZ(v);
   $("zDel").hidden=!z||!isAdmin; $("zDelAsk").hidden=true; $("zErr").hidden=true; $("zConflict").hidden=true;
-  $("fZ").querySelectorAll(".grid input,.grid select,.grid textarea").forEach(el=>el.disabled=!canWrite);
+  $("zWartoscWrap").hidden=!canSeeAmounts();
+  $("z_wartosc").disabled=!canSeeAmounts();
+  $("fZ").querySelectorAll(".grid input,.grid select,.grid textarea").forEach(el=>{ if(el.id!=="z_wartosc") el.disabled=!canWrite; });
   $("zSave").hidden=!canWrite; $("zSave").textContent="Zapisz";
   loadAudit(z);
   $("dlgZ").showModal();
@@ -814,7 +832,10 @@ let forceNext=false;
 $("fZ").addEventListener("submit", async e=>{
   e.preventDefault();
   const d=readZ();
-  const err = !d.data? "Podaj datę odbioru." : !d.podw? "Wybierz podwykonawcę." : (!d.nr && !d.opis)? "Wpisz nr zlecenia albo opis elementu." : "";
+  const amountRaw=canSeeAmounts()?$("z_wartosc").value.trim():"";
+  const amount=amountRaw===""?null:Number(amountRaw.replace(",","."));
+  const err = !d.data? "Podaj datę odbioru." : !d.podw? "Wybierz podwykonawcę." : (!d.nr && !d.opis)? "Wpisz nr zlecenia albo opis elementu." :
+    (canSeeAmounts() && amountRaw!=="" && (!Number.isFinite(amount)||amount<0))? "Wpisz prawidłową, nieujemną wartość zamówienia." : "";
   if(err){ $("zErr").textContent=err; $("zErr").hidden=false; return; }
   if(d.status==="Odebrane" && !d.odebrano) d.odebrano=today();
   $("zSave").disabled=true;
@@ -823,6 +844,11 @@ $("fZ").addEventListener("submit", async e=>{
     forceNext=false;
     if(r.conflict){ showConflict(r.conflict); return; }
     if(r.gone){ $("zErr").textContent="To zlecenie zostało w międzyczasie usunięte."; $("zErr").hidden=false; return; }
+    if(canSeeAmounts()){
+      const valueRef=doc(db,C.v,r.id);
+      if(amount===null) await deleteDoc(valueRef);
+      else await setDoc(valueRef,{wartosc:Math.round(amount*100)/100, zmieniono:serverTimestamp(), zmienil:me.uid, zmienilNazwa:me.nazwa||me.login});
+    }
     toast(r.nochange? "Bez zmian" : r.nowy? "Dodano zlecenie" : "Zapisano zmiany");
     $("dlgZ").close();
   }catch(x){ failed(x); }
@@ -841,7 +867,7 @@ $("zDelYes").onclick=async()=>{
   try{
     const b=writeBatch(db); const {id, ...rest}=z;
     b.set(doc(db,C.kosz,zId), {...rest, usunieto:serverTimestamp(), usunal:me.uid, usunalNazwa:me.nazwa||me.login});
-    b.delete(doc(db,C.z,zId)); await b.commit();
+    b.delete(doc(db,C.z,zId)); b.delete(doc(db,C.v,zId)); await b.commit();
     toast("Usunięto zlecenie (kopia zostaje w koszu w bazie)"); $("dlgZ").close();
   }catch(x){ failed(x); }
 };
@@ -893,9 +919,9 @@ $("btnSeed").onclick=async()=>{
 
 /* ---------- eksport CSV (Excel, średnik, polskie znaki) ---------- */
 function exportCsv(){
-  const head=["Data odbioru","Dzień","Tydz.","Podwykonawca","Nr zlecenia","Element / opis","Rodzaj","Ilość [szt]","Status","Odebrano dnia","Alert","Uwagi","Dodał","Dodano","Ostatnio zmienił","Zmieniono"];
+  const head=["Data odbioru","Dzień","Tydz.","Podwykonawca","Nr zlecenia","Element / opis","Rodzaj","Ilość [szt]",...(canSeeAmounts()?["Wartość zamówienia [zł]"]:[]),"Status","Odebrano dnia","Alert","Uwagi","Dodał","Dodano","Ostatnio zmienił","Zmieniono"];
   const q=v=>{ const s=String(v??""); return /[;"\n\r]/.test(s)? '"'+s.replace(/"/g,'""')+'"' : s; };
-  const rows=Z.slice().sort(byDate).map(z=>[fD(z.data), z.data?DNI_K[pd(z.data).getDay()]:"", z.data?isoWeek(z.data):"", supName(z.podw), z.nr, z.opis, z.rodzaj, z.ilosc??"", z.status, fD(z.odebrano), alertOf(z)?.[0]||"", z.uwagi, z.utworzylNazwa, fTs(z.utworzono), z.zmienilNazwa, fTs(z.zmieniono)]);
+  const rows=Z.slice().sort(byDate).map(z=>[fD(z.data), z.data?DNI_K[pd(z.data).getDay()]:"", z.data?isoWeek(z.data):"", supName(z.podw), z.nr, z.opis, z.rodzaj, z.ilosc??"",...(canSeeAmounts()?[V[z.id]?.wartosc??""]:[]), z.status, fD(z.odebrano), alertOf(z)?.[0]||"", z.uwagi, z.utworzylNazwa, fTs(z.utworzono), z.zmienilNazwa, fTs(z.zmieniono)]);
   const csv="﻿"+[head,...rows].map(r=>r.map(q).join(";")).join("\r\n");
   const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
   a.download=`kooperacje-${today()}.csv`; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000);
@@ -934,6 +960,8 @@ function startData(){
   const lost=x=>{ console.warn(x); note(x&&x.code==="permission-denied"? "Baza odmawia dostępu do Kooperacji. Administrator musi dodać reguły Kooperacji w Firebase (instrukcja, krok 1)." : "Utracono połączenie z bazą. Odśwież stronę.", true); };
   subs.push(onSnapshot(collection(db,C.z), s=>{ Z=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
   subs.push(onSnapshot(collection(db,C.p), s=>{ P=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
+  V={};
+  if(canSeeAmounts()) subs.push(onSnapshot(collection(db,C.v), s=>{ V=Object.fromEntries(s.docs.map(d=>[d.id,d.data()])); renderZ(); if(zId && $("dlgZ").open) $("z_wartosc").value=V[zId]?.wartosc??""; }, lost));
   subs.push(onSnapshot(doc(db,C.u,"slowniki"), s=>{ if(s.exists() && Array.isArray(s.data().rodzaje)) rodzaje=s.data().rodzaje.slice(); render(); }, lost));
 }
 
@@ -941,11 +969,11 @@ let userUnsub=null, metaUnsub=null, adminUid="";
 onAuthStateChanged(auth, u=>{
   stopSubs(); if(userUnsub){userUnsub();userUnsub=null;} if(metaUnsub){metaUnsub();metaUnsub=null;}
   if(kontaUnsub){kontaUnsub();kontaUnsub=null;} K=[];
-  me=null; Z=[]; P=[];
+  me=null; Z=[]; P=[]; V={}; isBuyer=false; isAdmin=false;
   if(!u){ show("login"); return; }
   show("msg","Sprawdzam uprawnienia…");
   let started=false, konto=null, metaOk=false, userOk=false;
-  const deny=m=>{ stopSubs(); started=false; me=null; isAdmin=false; watchKonta(); show("msg",m); };
+  const deny=m=>{ stopSubs(); started=false; me=null; isAdmin=false; isBuyer=false; V={}; watchKonta(); show("msg",m); };
   // decyzja o dostępie, gdy znamy i konto, i administratora
   const decide=()=>{
     if(!metaOk || !userOk) return;
@@ -954,6 +982,7 @@ onAuthStateChanged(auth, u=>{
     if(k.rola!=="biuro") return deny("Kooperacje są dostępne tylko dla kont biura.");
     if(k.aktywny===false) return deny("To konto jest zablokowane w Truck App.");
     isAdmin = adminUid===u.uid;
+    isBuyer = k.koopZakupowiec===true;
     if(k.kooperacje===false && !isAdmin) return deny("To konto nie ma dostępu do Kooperacji. Dostęp nadaje administrator w zakładce Dostęp.");
     me={uid:u.uid, login:k.login||"", nazwa:k.nazwa||k.login||""};
     canWrite=true;
@@ -965,6 +994,7 @@ onAuthStateChanged(auth, u=>{
   metaUnsub=onSnapshot(doc(db,"meta","init"), s=>{ adminUid = s.exists()? (s.data().admin||"") : ""; metaOk=true; decide(); }, ()=>{ metaOk=true; decide(); });
   userUnsub=onSnapshot(doc(db,"uzytkownicy",u.uid), s=>{
     if(!s.exists() && s.metadata.fromCache) return;
+    if(started){ stopSubs(); started=false; V={}; }
     konto=s.exists()? s.data() : null; userOk=true; decide();
   }, x=>{ show("msg","Nie udało się sprawdzić konta: "+(x&&x.code||x)); });
 });
