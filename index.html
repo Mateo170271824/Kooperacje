@@ -216,7 +216,7 @@ label input,label select,label textarea{width:100%}
 <body>
 <!-- Ekran startowy jak w Kalkulatorze stali: dwa koła zębate (firma i podwykonawca) obracają się i zazębiają, potem płynne zniknięcie (sam CSS, działa nawet bez JS) -->
 <style>
-#splash{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#f2f3f1;animation:spl-out .5s ease 3.2s forwards}
+#splash{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#f2f3f1;animation:spl-out .5s ease 2.7s forwards}
 #splash .tile{width:132px;height:132px;border-radius:30px;background:#1f5f7a;display:grid;place-items:center;box-shadow:0 14px 34px rgba(27,35,32,.22);animation:spl-pop .45s cubic-bezier(.2,.9,.3,1.25) both}
 #splash svg{width:118px;height:118px;overflow:visible}
 #splash .g{transform-box:view-box;transform-origin:0 0}
@@ -239,7 +239,7 @@ label input,label select,label textarea{width:100%}
   </svg></div>
   <div class="t"><small>Odbiory od podwykonawców</small>Kooperacje</div>
 </div>
-<script>(function(){var s=document.getElementById('splash');if(!s)return;var x=function(){if(s.parentNode)s.remove()};s.addEventListener('click',x);setTimeout(x,3900)})()</script>
+<script>(function(){var s=document.getElementById('splash');if(!s)return;var x=function(){if(s.parentNode)s.remove()};s.addEventListener('click',x);setTimeout(x,3400)})()</script>
 
 <!-- LOGOWANIE -->
 <section class="login" id="vLogin" hidden>
