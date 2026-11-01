@@ -281,7 +281,6 @@ label input,label select,label textarea{width:100%}
     <button role="tab" data-tab="tydzien" aria-selected="false">Tydzień</button>
     <button role="tab" data-tab="zlecenia" aria-selected="false">Zlecenia</button>
     <button role="tab" data-tab="podwykonawcy" aria-selected="false">Podwykonawcy</button>
-    <button role="tab" data-tab="raporty" aria-selected="false" id="tabRaporty" hidden>Raporty kwot</button>
     <button role="tab" data-tab="dostep" aria-selected="false" id="tabDostep" hidden>Dostęp</button>
   </nav>
 
@@ -371,37 +370,6 @@ label input,label select,label textarea{width:100%}
       <div class="hd"><h2>Rodzaje zleceń</h2>
         <form id="fRodz" class="toolbar" novalidate hidden><input id="newRodz" placeholder="Nowy rodzaj" aria-label="Nowy rodzaj"><button class="btn sm" type="submit">Dodaj</button></form></div>
       <div class="tag-list" id="rodzList"></div>
-    </div>
-  </section>
-
-  <section id="v-raporty" class="stack" hidden>
-    <div class="panel">
-      <div class="hd"><h2>Raport wartości zamówień</h2><span class="small">Dostęp tylko dla administratora i Zakupowca</span></div>
-      <div class="toolbar" style="padding:12px 14px;flex-wrap:wrap">
-        <label>Okres
-          <select id="rPeriod">
-            <option value="month">Miesięczny</option>
-            <option value="quarter">Kwartalny</option>
-            <option value="half">Półroczny</option>
-            <option value="year">Roczny</option>
-          </select>
-        </label>
-        <label>Rok<input id="rYear" type="number" min="2000" max="2100" step="1" style="width:110px"></label>
-        <label id="rSliceWrap">Miesiąc<select id="rSlice"></select></label>
-        <button class="btn sm" type="button" id="btnReportCsv">Eksportuj raport CSV</button>
-      </div>
-      <p class="small" id="rRange" style="padding:0 14px 12px;margin:0"></p>
-    </div>
-    <div class="kpis">
-      <div class="kpi"><span class="lbl">Łączna wartość</span><span class="val" id="rTotal">–</span><span class="hint">zlecenia w wybranym okresie</span></div>
-      <div class="kpi"><span class="lbl">Średnia wartość zamówienia</span><span class="val" id="rAverage">–</span><span class="hint" id="rAverageHint">–</span></div>
-      <div class="kpi"><span class="lbl">Zlecenia z podaną kwotą</span><span class="val" id="rCount">–</span><span class="hint" id="rCountHint">–</span></div>
-      <div class="kpi"><span class="lbl">Podwykonawcy</span><span class="val" id="rSupCount">–</span><span class="hint">z kwotami w tym okresie</span></div>
-    </div>
-    <div class="panel">
-      <div class="hd"><h2>Podsumowanie według podwykonawcy</h2><span class="small">kwoty w zł</span></div>
-      <div class="tablebox"><table class="wide"><thead><tr><th>Podwykonawca</th><th class="num">Zlecenia</th><th class="num">Z kwotą</th><th class="num">Łączna wartość</th><th class="num">Średnia / zamówienie</th></tr></thead><tbody id="rRows"></tbody></table></div>
-      <p class="small" id="rNote" style="padding:10px 14px;margin:0">Raport obejmuje zlecenia według daty odbioru, bez zleceń anulowanych. Średnia liczona jest tylko dla zleceń, którym przypisano kwotę.</p>
     </div>
   </section>
 
@@ -547,9 +515,9 @@ function show(view, msg){
   $("vLogin").hidden = view!=="login"; $("vApp").hidden = view!=="app"; $("vMsg").hidden = view!=="msg";
   if (view==="msg"){ $("msgText").textContent = msg; $("msgOut").hidden = !auth.currentUser; }
 }
-const TABS=["pulpit","kalendarz","tydzien","zlecenia","podwykonawcy","raporty","dostep"];
+const TABS=["pulpit","kalendarz","tydzien","zlecenia","podwykonawcy","dostep"];
 let tab="pulpit";
-function setTab(t){ tab=TABS.includes(t)?t:"pulpit"; if(tab==="raporty" && !canSeeAmounts()) tab="pulpit"; if(tab==="dostep" && !isAdmin) tab="pulpit"; for(const k of TABS) $("v-"+k).hidden = k!==tab;
+function setTab(t){ tab=TABS.includes(t)?t:"pulpit"; for(const k of TABS) $("v-"+k).hidden = k!==tab;
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===tab));
   try{ history.replaceState(null,"","#"+tab); }catch{} }
 document.querySelector("nav.tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-tab]"); if(b) setTab(b.dataset.tab); });
@@ -569,10 +537,8 @@ function render(){
   $("btnNew").hidden=!canWrite; $("btnNewSup").hidden=!isAdmin; $("fRodz").hidden=!isAdmin; $("sHint").hidden=isAdmin;
   $("btnSeed").hidden = !(isAdmin && P.length===0);
   $("tabDostep").hidden = !isAdmin;
-  $("tabRaporty").hidden = !canSeeAmounts();
   if (!isAdmin && tab==="dostep") setTab("pulpit");
-  if (!canSeeAmounts() && tab==="raporty") setTab("pulpit");
-  renderPulpit(); renderCal(); renderWeek(); renderZ(); renderSup(); renderDostep(); renderRaporty();
+  renderPulpit(); renderCal(); renderWeek(); renderZ(); renderSup(); renderDostep();
 }
 
 /* ---------- dostęp (administrator): pole uzytkownicy/{uid}.kooperacje ---------- */
@@ -761,74 +727,6 @@ function renderZ(){
   const e=$("zEmpty"); e.hidden=!!list.length;
   e.innerHTML = Z.length? `<span>Żadne zlecenie nie pasuje do filtrów.</span>` : `<strong>Brak zleceń</strong><span>Dodaj pierwsze zlecenie przyciskiem „Nowe zlecenie”.</span>`;
 }
-
-/* ---------- raporty kwot: tylko administrator i Zakupowiec ---------- */
-const R_MIES = ["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
-function reportBounds(){
-  const year=Number($("rYear").value)||new Date().getFullYear();
-  const type=$("rPeriod").value;
-  let idx=Number($("rSlice").value)||1, startMonth=0, endMonth=11, label=String(year);
-  if(type==="month"){ startMonth=idx-1; endMonth=startMonth; label=R_MIES[startMonth]+" "+year; }
-  else if(type==="quarter"){ startMonth=(idx-1)*3; endMonth=startMonth+2; label=idx+". kwartał "+year; }
-  else if(type==="half"){ startMonth=(idx-1)*6; endMonth=startMonth+5; label=(idx===1?"I":"II")+" półrocze "+year; }
-  const start=year+"-"+String(startMonth+1).padStart(2,"0")+"-01";
-  const last=new Date(year,endMonth+1,0).getDate();
-  const end=year+"-"+String(endMonth+1).padStart(2,"0")+"-"+String(last).padStart(2,"0");
-  return {start,end,label};
-}
-function updateReportSlices(){
-  const type=$("rPeriod").value, sel=$("rSlice"), wrap=$("rSliceWrap");
-  const count=type==="month"?12:type==="quarter"?4:type==="half"?2:0;
-  wrap.hidden=!count;
-  if(!count){ sel.innerHTML=""; return; }
-  const old=Number(sel.value)|| (type==="month"?new Date().getMonth()+1: type==="quarter"?Math.floor(new Date().getMonth()/3)+1:Math.floor(new Date().getMonth()/6)+1);
-  const labels=type==="month"?R_MIES.map((x,i)=>[i+1,x]):type==="quarter"?[[1,"I kwartał"],[2,"II kwartał"],[3,"III kwartał"],[4,"IV kwartał"]]:[[1,"I półrocze"],[2,"II półrocze"]];
-  sel.innerHTML=labels.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
-  sel.value=String(Math.min(count,old));
-}
-function reportData(){
-  const b=reportBounds();
-  const orders=Z.filter(z=>z.status!=="Anulowane" && z.data>=b.start && z.data<=b.end);
-  const valued=orders.filter(z=>V[z.id] && V[z.id].wartosc!==null && V[z.id].wartosc!==undefined && V[z.id].wartosc!=="" && Number.isFinite(Number(V[z.id].wartosc)));
-  const sum=arr=>arr.reduce((a,z)=>a+Number(V[z.id].wartosc),0);
-  const rows=sortedP().map(p=>{
-    const all=orders.filter(z=>z.podw===p.id);
-    const withValue=valued.filter(z=>z.podw===p.id);
-    const total=sum(withValue);
-    return {id:p.id,nazwa:p.nazwa,orders:all.length,count:withValue.length,total,average:withValue.length?total/withValue.length:null};
-  }).filter(x=>x.orders||x.count).sort((a,b)=>b.total-a.total||a.nazwa.localeCompare(b.nazwa,"pl"));
-  return {bounds:b,orders,valued,total:sum(valued),average:valued.length?sum(valued)/valued.length:null,rows};
-}
-function renderRaporty(){
-  if(!canSeeAmounts()) return;
-  const r=reportData(), fmt=moneyText;
-  $("rRange").textContent=`Okres: ${r.bounds.label} (${fD(r.bounds.start)} – ${fD(r.bounds.end)}) · według daty odbioru`;
-  $("rTotal").textContent=fmt(r.total);
-  $("rAverage").textContent=r.average===null?"—":fmt(r.average);
-  $("rAverageHint").textContent=r.valued.length?`średnia z ${r.valued.length} wycenionych zleceń`:"brak wycenionych zleceń";
-  $("rCount").textContent=String(r.valued.length);
-  $("rCountHint").textContent=`z ${r.orders.length} wszystkich nieanulowanych zleceń`;
-  $("rSupCount").textContent=String(r.rows.filter(x=>x.count>0).length);
-  $("rRows").innerHTML=r.rows.length?r.rows.map(x=>`<tr><td class="strong"><span class="sw" style="background:${supColor(x.id)}"></span>${esc(x.nazwa)}</td><td class="num">${x.orders}</td><td class="num">${x.count}</td><td class="num">${fmt(x.total)}</td><td class="num">${x.average===null?"—":fmt(x.average)}</td></tr>`).join("")+`<tr><td class="strong">RAZEM</td><td class="num">${r.orders.length}</td><td class="num">${r.valued.length}</td><td class="num strong">${fmt(r.total)}</td><td class="num strong">${r.average===null?"—":fmt(r.average)}</td></tr>`:`<tr><td colspan="5" class="small">Brak zleceń w wybranym okresie.</td></tr>`;
-  $("rNote").textContent=`Raport obejmuje ${r.orders.length} nieanulowanych zleceń z datą odbioru w wybranym okresie. Kwoty podsumowano dla ${r.valued.length} zleceń z zapisaną wartością; średnia to suma kwot podzielona przez liczbę wycenionych zleceń. Zlecenia bez kwoty są widoczne w liczbie zleceń, ale nie wpływają na sumę ani średnią.`;
-}
-function exportReportCsv(){
-  if(!canSeeAmounts()) return;
-  const r=reportData();
-  const q=v=>{const x=String(v??"");return /[;"\n\r]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;};
-  const rows=[["Raport wartości zamówień",r.bounds.label],["Podwykonawca","Liczba zleceń","Z kwotą","Łączna wartość [zł]","Średnia [zł]"]];
-  for(const x of r.rows) rows.push([x.nazwa,x.orders,x.count,x.total.toFixed(2),x.average===null?"":x.average.toFixed(2)]);
-  rows.push(["RAZEM",r.orders.length,r.valued.length,r.total.toFixed(2),r.average===null?"":r.average.toFixed(2)]);
-  const csv="\uFEFF"+rows.map(row=>row.map(q).join(";")).join("\r\n");
-  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  a.download=`raport-kwot-${r.bounds.start}-${r.bounds.end}.csv`; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
-  toast("Wyeksportowano raport kwot");
-}
-$("rPeriod").addEventListener("change",()=>{updateReportSlices();renderRaporty();});
-$("rYear").addEventListener("change",renderRaporty);
-$("rSlice").addEventListener("change",renderRaporty);
-$("btnReportCsv").addEventListener("click",exportReportCsv);
-updateReportSlices();
 
 function renderSup(){
   $("sRows").innerHTML=sortedP().map(p=>`<tr class="${isAdmin?"click":""}" data-s="${p.id}"><td class="strong"><span class="sw" style="background:var(--c${p.kolor??7})"></span>${esc(p.nazwa)}</td><td>${esc(p.dzial)}</td>
@@ -1063,7 +961,7 @@ function startData(){
   subs.push(onSnapshot(collection(db,C.z), s=>{ Z=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
   subs.push(onSnapshot(collection(db,C.p), s=>{ P=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
   V={};
-  if(canSeeAmounts()) subs.push(onSnapshot(collection(db,C.v), s=>{ V=Object.fromEntries(s.docs.map(d=>[d.id,d.data()])); renderZ(); renderRaporty(); if(zId && $("dlgZ").open) $("z_wartosc").value=V[zId]?.wartosc??""; }, lost));
+  if(canSeeAmounts()) subs.push(onSnapshot(collection(db,C.v), s=>{ V=Object.fromEntries(s.docs.map(d=>[d.id,d.data()])); renderZ(); if(zId && $("dlgZ").open) $("z_wartosc").value=V[zId]?.wartosc??""; }, lost));
   subs.push(onSnapshot(doc(db,C.u,"slowniki"), s=>{ if(s.exists() && Array.isArray(s.data().rodzaje)) rodzaje=s.data().rodzaje.slice(); render(); }, lost));
 }
 
