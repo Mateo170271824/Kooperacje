@@ -221,6 +221,75 @@ label input,label select,label textarea{width:100%}
 .login{min-height:100vh;display:grid;place-items:center;padding:24px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
 .login form{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:24px;display:grid;gap:14px;width:min(380px,100%)}
 .login h1{font-size:24px}
+/* raporty, weryfikacja, przypomnienia, wydruk */
+.rtools{padding:12px 14px;align-items:flex-end;gap:10px 12px}
+.rtools label{display:grid;gap:3px;font-size:12px}
+.grp{display:grid;gap:3px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;flex-wrap:wrap}
+.seg button{font:600 13px var(--f-body);background:var(--surface);color:var(--muted);border:0;border-left:1px solid var(--line);padding:6px 11px;cursor:pointer}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
+.chk{display:inline-flex!important;gap:6px;align-items:center;font-size:13px;color:var(--fg)}
+.chk input{width:auto}
+.rtab tr.tot td,.vtab tr.tot td,#rpRows tr.tot td{font-weight:700;background:var(--sunk);border-bottom:0}
+.rtab tr.open>td{background:var(--sunk)}
+.barcell{width:24%;min-width:150px;vertical-align:middle}
+.barcell .btn{margin-top:6px}
+.rbar{height:8px;border-radius:4px;background:var(--sunk);overflow:hidden}
+.rbar span{display:block;height:100%;background:var(--accent);border-radius:4px}
+tr.rsub>td{padding:0 0 10px 18px;background:var(--sunk)}
+tr.rsub table{background:var(--surface);border:1px solid var(--line)}
+.kpis3{grid-template-columns:repeat(3,minmax(0,1fr));padding:12px 14px}
+@media (max-width:700px){.kpis3{grid-template-columns:minmax(0,1fr)}}
+.val.ok{color:var(--ok)}.val.warn{color:var(--warn)}.val.bad{color:var(--bad)}
+.pill.p-ok{background:var(--ok-soft);color:var(--ok)}.pill.p-warn{background:var(--warn-soft);color:var(--warn)}.pill.p-bad{background:var(--bad-soft);color:var(--bad)}.pill.p-idle{background:var(--idle-soft);color:var(--muted)}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center;display:grid;gap:4px;justify-items:center;color:var(--muted);font-size:13px}
+.drop b{color:var(--fg)}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.vtab select{max-width:260px;font-size:12.5px}
+.alerts{display:grid;gap:10px}
+@media (max-width:600px){#v-raporty .kpi .val,#v-weryfikacja .kpi .val,#rProj .kpi .val{font-size:20px;overflow-wrap:anywhere}.rtools label{flex:1 1 140px}}
+.alerts:empty{display:none}
+.pal{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px 12px;align-items:center;border-radius:8px;padding:11px 14px;border:1px solid var(--line)}
+.pal.bad{background:var(--bad-soft)}.pal.warn{background:var(--warn-soft)}
+.pal b{display:block;color:var(--fg)}
+.pal .ic{font:700 16px/1 var(--f-display);width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff}
+.pal.bad .ic{background:var(--bad)}.pal.warn .ic{background:var(--warn)}
+.pal .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.btn.ghost{background:transparent}
+@media (max-width:640px){.pal{grid-template-columns:auto minmax(0,1fr)}.pal .acts{grid-column:2;justify-content:flex-start}}
+.chip{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;font-weight:600;background:var(--bad-soft);color:var(--bad);border-radius:999px;padding:3px 4px 3px 10px}
+.chip button{border:0;background:transparent;color:inherit;font:700 15px/1 var(--f-body);cursor:pointer;padding:0 6px}
+#dlgP{max-width:470px}
+.pq{display:grid;gap:12px}
+.choice{display:grid;gap:8px}
+.choice label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:start;border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;color:var(--fg);font-size:13.5px}
+.choice label.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.choice input{width:auto;margin-top:3px}
+.choice .small{grid-column:2}
+#printArea{display:none}
+@media print{
+  @page{size:A4 landscape;margin:9mm}
+  body>*:not(#printArea){display:none!important}
+  html,body{background:#fff!important;color:#15202b!important;padding:0!important}
+  #printArea{display:block!important}
+  .pp{font:10px/1.35 "IBM Plex Sans",Arial,sans-serif;color:#15202b}
+  .pp-h{display:flex;justify-content:space-between;gap:16px;border-bottom:2.5px solid #4394d0;padding-bottom:6px;margin-bottom:8px}
+  .pp-h b{font-size:16px;display:block}
+  .pp-h span,.pp-m{color:#56687a;font-size:10px}
+  .pp-m{text-align:right}
+  .pp-g{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid #b9c3cc}
+  .pp-g>div{border-left:1px solid #b9c3cc;min-height:150mm}
+  .pp-g>div:first-child{border-left:0}
+  .pp-g h4{margin:0;background:#1f4e8c;color:#fff;font-size:10.5px;padding:4px 6px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pp-it{padding:5px 6px;border-bottom:1px dashed #c9d1d8;display:grid;gap:1px;break-inside:avoid}
+  .pp-it b{font-size:10.5px}
+  .pp-it small{color:#56687a;font-size:9px}
+  .pp-it i{font-style:normal;font-size:9px;color:#b0332a;font-weight:700}
+  .pp-box{display:inline-block;width:9px;height:9px;border:1.2px solid #15202b;border-radius:2px;margin-right:5px;vertical-align:-1px}
+  .pp-f{color:#78848f;font-size:8.5px;margin-top:6px}
+}
 </style>
 </head>
 <body>
@@ -292,10 +361,12 @@ label input,label select,label textarea{width:100%}
     <button role="tab" data-tab="zlecenia" aria-selected="false">Zlecenia</button>
     <button role="tab" data-tab="podwykonawcy" aria-selected="false">Podwykonawcy</button>
     <button role="tab" data-tab="raporty" aria-selected="false" id="tabRaporty" hidden>Raporty kwot</button>
+    <button role="tab" data-tab="weryfikacja" aria-selected="false" id="tabWer" hidden>Weryfikacja kosztów</button>
     <button role="tab" data-tab="dostep" aria-selected="false" id="tabDostep" hidden>Dostęp</button>
   </nav>
 
   <section id="v-pulpit" class="stack">
+    <div id="pAlerts" class="alerts"></div>
     <div class="kpis">
       <div class="kpi"><span class="lbl">Otwarte zlecenia</span><span class="val" id="kOpen">–</span><span class="hint" id="kOpenH">&nbsp;</span></div>
       <div class="kpi alert"><span class="lbl">Po terminie</span><span class="val" id="kLate">–</span><span class="hint" id="kLateH">&nbsp;</span></div>
@@ -347,6 +418,7 @@ label input,label select,label textarea{width:100%}
       <div class="toolbar">
         <select id="wkSup" aria-label="Podwykonawca"></select>
         <select id="wkShow" aria-label="Pokaż"><option value="open">Otwarte</option><option value="all">Wszystkie</option></select>
+        <button class="btn sm" type="button" id="wkPrint" title="Wydruk tygodnia A4 poziomo – można też zapisać jako PDF">Drukuj tydzień</button>
       </div>
     </div>
     <div class="tablebox"><table class="wide"><thead><tr><th>Dzień</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość</th><th class="num" id="thWkWartosc" hidden>Wartość</th><th>Status</th><th>Uwagi</th><th></th></tr></thead><tbody id="wkRows"></tbody></table></div>
@@ -363,10 +435,11 @@ label input,label select,label textarea{width:100%}
       </div>
       <div class="toolbar">
         <label style="display:flex;gap:6px;align-items:center;font-size:13px;color:var(--fg)"><input type="checkbox" id="zClosed"> Pokaż też odebrane i anulowane</label>
-        <button class="btn sm" type="button" id="btnCsv">Eksportuj do Excela (CSV)</button>
+        <span class="chip" id="zNoAmtChip" hidden>bez kwoty ponad miesiąc <button type="button" id="zNoAmtX" aria-label="Wyłącz filtr">×</button></span>
+        <button class="btn sm" type="button" id="btnCsv">Eksport do Excela</button>
       </div>
     </div>
-    <div class="tablebox"><table class="zt"><thead><tr><th>Data odbioru</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość</th><th class="num" id="thWartosc" hidden>Wartość</th><th>Status</th><th>Alert</th><th>Uwagi</th><th>Ostatnia zmiana</th><th></th></tr></thead><tbody id="zRows"></tbody></table></div>
+    <div class="tablebox"><table class="zt"><thead><tr><th>Data odbioru</th><th>Podwykonawca</th><th>Nr / projekt</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość</th><th class="num" id="thWartosc" hidden>Wartość</th><th>Status</th><th>Alert</th><th>Uwagi</th><th>Ostatnia zmiana</th><th></th></tr></thead><tbody id="zRows"></tbody></table></div>
     <div class="empty" id="zEmpty" hidden></div>
   </section>
 
@@ -386,32 +459,59 @@ label input,label select,label textarea{width:100%}
 
   <section id="v-raporty" class="stack" hidden>
     <div class="panel">
-      <div class="hd"><h2>Raport wartości zamówień</h2><span class="small">Dostęp tylko dla administratora i Zakupowca</span></div>
-      <div class="toolbar" style="padding:12px 14px;flex-wrap:wrap">
-        <label>Okres
-          <select id="rPeriod">
-            <option value="month">Miesięczny</option>
-            <option value="quarter">Kwartalny</option>
-            <option value="half">Półroczny</option>
-            <option value="year">Roczny</option>
-          </select>
-        </label>
-        <label>Rok<input id="rYear" type="number" min="2000" max="2100" step="1" style="width:110px"></label>
-        <label id="rSliceWrap">Miesiąc<select id="rSlice"></select></label>
-        <button class="btn sm" type="button" id="btnReportCsv">Eksportuj raport CSV</button>
+      <div class="hd"><h2>Raport wartości zamówień</h2>
+        <div class="toolbar"><button class="btn sm" type="button" id="btnRXlsx">Excel</button><button class="btn sm" type="button" id="btnRPdf">PDF</button><label class="chk"><input type="checkbox" id="rLogo" checked> z logo</label></div></div>
+      <div class="toolbar rtools">
+        <label>Okres<select id="rPeriod"><option value="month">Miesiąc</option><option value="quarter">Kwartał</option><option value="half">Półrocze</option><option value="year">Rok</option><option value="custom">Własny zakres</option></select></label>
+        <label id="rYearWrap">Rok<input id="rYear" type="number" min="2000" max="2100" step="1" style="width:96px"></label>
+        <label id="rSliceWrap">&nbsp;<select id="rSlice" aria-label="Część roku"></select></label>
+        <span id="rCustom" class="toolbar" hidden><label>Od<input id="rOd" type="date"></label><label>Do<input id="rDo" type="date"></label></span>
+        <label>Podwykonawca<select id="rSup"></select></label>
+        <div class="grp"><span class="lbl">Grupuj według</span><div class="seg" id="rGroup" role="group" aria-label="Grupuj według"><button type="button" data-g="podw">Podwykonawca</button><button type="button" data-g="rodzaj">Rodzaj usługi</button><button type="button" data-g="projekt">Projekt</button><button type="button" data-g="mies">Miesiące</button></div></div>
       </div>
       <p class="small" id="rRange" style="padding:0 14px 12px;margin:0"></p>
     </div>
     <div class="kpis">
       <div class="kpi"><span class="lbl">Łączna wartość</span><span class="val" id="rTotal">–</span><span class="hint">zlecenia w wybranym okresie</span></div>
-      <div class="kpi"><span class="lbl">Średnia wartość zamówienia</span><span class="val" id="rAverage">–</span><span class="hint" id="rAverageHint">–</span></div>
-      <div class="kpi"><span class="lbl">Zlecenia z podaną kwotą</span><span class="val" id="rCount">–</span><span class="hint" id="rCountHint">–</span></div>
-      <div class="kpi"><span class="lbl">Podwykonawcy</span><span class="val" id="rSupCount">–</span><span class="hint">z kwotami w tym okresie</span></div>
+      <div class="kpi"><span class="lbl">Zlecenia z kwotą</span><span class="val" id="rCount">–</span><span class="hint" id="rCountHint">–</span></div>
+      <div class="kpi"><span class="lbl">Średnio na zlecenie</span><span class="val" id="rAverage">–</span><span class="hint">tylko wycenione</span></div>
+      <div class="kpi"><span class="lbl" id="rTopLbl">Największy</span><span class="val" id="rTop" style="font-size:22px">–</span><span class="hint" id="rTopHint">–</span></div>
     </div>
     <div class="panel">
-      <div class="hd"><h2>Podsumowanie według podwykonawcy</h2><span class="small">kwoty w zł</span></div>
-      <div class="tablebox"><table class="wide"><thead><tr><th>Podwykonawca</th><th class="num">Zlecenia</th><th class="num">Z kwotą</th><th class="num">Łączna wartość</th><th class="num">Średnia / zamówienie</th></tr></thead><tbody id="rRows"></tbody></table></div>
-      <p class="small" id="rNote" style="padding:10px 14px;margin:0">Raport obejmuje zlecenia według daty odbioru, bez zleceń anulowanych. Średnia liczona jest tylko dla zleceń, którym przypisano kwotę.</p>
+      <div class="hd"><h2 id="rTitle">Według</h2><span class="small">kliknij wiersz, żeby zobaczyć zlecenia</span></div>
+      <div class="tablebox"><table class="rtab"><thead id="rHead"></thead><tbody id="rRows"></tbody></table></div>
+    </div>
+    <div class="panel" id="rProj" hidden>
+      <div class="hd"><h2 id="rpTitle">Projekt</h2><div class="toolbar"><button class="btn sm" type="button" id="btnPXlsx">Excel</button><button class="btn sm" type="button" id="btnPPdf">PDF</button><button class="btn sm" type="button" id="btnPClose">Zamknij</button></div></div>
+      <div class="kpis kpis3">
+        <div class="kpi"><span class="lbl">Wartość</span><span class="val" id="rpSum">–</span><span class="hint">wszystkie zlecenia projektu</span></div>
+        <div class="kpi"><span class="lbl">Zlecenia</span><span class="val" id="rpCnt">–</span><span class="hint" id="rpCntH"></span></div>
+        <div class="kpi"><span class="lbl">Czas trwania</span><span class="val" id="rpDni">–</span><span class="hint" id="rpDniH"></span></div>
+      </div>
+      <div class="tablebox"><table><thead><tr><th>Element</th><th>Podwykonawca</th><th>Zamówiono</th><th>Odebrano</th><th class="num">Dni</th><th class="num">Kwota</th></tr></thead><tbody id="rpRows"></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="v-weryfikacja" class="stack" hidden>
+    <div class="panel">
+      <div class="hd"><h2 id="vTitle">Weryfikacja kosztów</h2><div class="toolbar"><label class="btn sm primary filebtn">Wgraj plik przyjęć (Excel)<input type="file" id="vInput" accept=".xlsx,.xls"></label><label id="vMonthWrap" hidden>Miesiąc <select id="vMonth"></select></label><button class="btn sm" type="button" id="vXlsx">Excel</button></div></div>
+      <div style="padding:12px 14px;display:grid;gap:10px">
+        <p class="small" style="margin:0">Kwoty wpisujecie ręcznie w zleceniach. Na koniec miesiąca wgraj eksport przyjęć z magazynu: aplikacja dopasuje przyjęcia do zleceń (dostawca = podwykonawca, w uwagach nr zlecenia / projekt) i pokaże, czy wszystko jest wpisane i czy kwoty się zgadzają (wartość netto). Przyjęcia od innych dostawców są pomijane.</p>
+        <p class="small" id="vLast" style="margin:0"></p>
+        <div class="drop" id="vEmpty">Wgraj plik z kolumnami: Numer, Data przyjęcia, Dostawca/Odbiorca – Symbol, Wartość netto, Uwagi.</div>
+      </div>
+      <div id="vRes" hidden>
+        <div style="padding:0 14px 12px;display:grid;gap:12px">
+          <div class="drop" id="vFile"></div>
+          <div class="kpis">
+            <div class="kpi"><span class="lbl">Zgodne</span><span class="val ok" id="vOk">–</span><span class="hint">kwota w aplikacji = w pliku</span></div>
+            <div class="kpi"><span class="lbl">Różnica kwoty</span><span class="val warn" id="vDiff">–</span><span class="hint">do wyjaśnienia</span></div>
+            <div class="kpi"><span class="lbl">Brak kwoty w aplikacji</span><span class="val bad" id="vBrak">–</span><span class="hint">można wpisać z pliku</span></div>
+            <div class="kpi"><span class="lbl">Bez przyjęcia na magazyn</span><span class="val bad" id="vBezpz">–</span><span class="hint">odebrane, brak PZ w pliku</span></div>
+          </div>
+        </div>
+        <div class="tablebox"><table class="vtab"><thead><tr><th>Zlecenie</th><th>Odebrano</th><th>Przyjęcie (PZ)</th><th>Uwagi z pliku</th><th class="num">W aplikacji</th><th class="num">W pliku (netto)</th><th>Wynik</th><th></th></tr></thead><tbody id="vRows"></tbody></table></div>
+      </div>
     </div>
   </section>
 
@@ -430,7 +530,7 @@ label input,label select,label textarea{width:100%}
     <div class="grid">
       <label>Data odbioru<input id="z_data" type="date" required></label>
       <label>Podwykonawca<select id="z_podw" required></select></label>
-      <label>Nr zlecenia<input id="z_nr" placeholder="np. LOPR615-26B"></label>
+      <label>Nr zlecenia / projekt<input id="z_nr" placeholder="np. LECM albo JADJ1240-26A" list="projList" autocomplete="off"></label><datalist id="projList"></datalist>
       <label>Rodzaj<select id="z_rodzaj"></select></label>
       <label class="full">Element / opis<input id="z_opis" placeholder="np. Uszka mobilne do belki"></label>
       <label>Ilość [szt]<input id="z_ilosc" type="number" min="0" step="1"></label>
@@ -475,6 +575,12 @@ label input,label select,label textarea{width:100%}
   </form>
 </dialog>
 <div class="toast" id="toast" hidden></div>
+<dialog id="dlgP"><form method="dialog" class="pq">
+  <h3 id="pqT">Projekt już był</h3><p class="small" id="pqTxt" style="margin:0"></p>
+  <div class="choice" id="pqCh"></div>
+  <div class="foot"><span class="grow"></span><button class="btn" type="submit" value="cancel">Anuluj</button><button class="btn primary" type="submit" value="ok">Zapisz zlecenie</button></div>
+</form></dialog>
+<div id="printArea" aria-hidden="true"></div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -506,8 +612,8 @@ const START_PODW = [
   {id:"podwykonawca-2", nazwa:"podwykonawca-2", dzial:"Wypałki/Gięcie", tel:"600000002", email:"podwykonawca2@example.com", osoba2:"", tel2:"", email2:"", kolor:1, kolejnosc:2},
   {id:"podwykonawca-3", nazwa:"podwykonawca-3", dzial:"OBRÓBKI", tel:"600000003", email:"podwykonawca3@example.com", osoba2:"", tel2:"", email2:"", kolor:2, kolejnosc:3}
 ];
-const POLA = ["data","podw","nr","opis","rodzaj","ilosc","status","odebrano","uwagi"];
-const POLA_NAZWY = {data:"data odbioru",podw:"podwykonawca",nr:"nr zlecenia",opis:"opis",rodzaj:"rodzaj",ilosc:"ilość",status:"status",odebrano:"odebrano dnia",uwagi:"uwagi"};
+const POLA = ["data","podw","nr","projekt","opis","rodzaj","ilosc","status","odebrano","uwagi"];
+const POLA_NAZWY = {data:"data odbioru",podw:"podwykonawca",nr:"nr zlecenia / projekt",projekt:"projekt",opis:"opis",rodzaj:"rodzaj",ilosc:"ilość",status:"status",odebrano:"odebrano dnia",uwagi:"uwagi"};
 const DNI = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
 const DNI_K = ["nd","pn","wt","śr","cz","pt","sb"];
 const MIES = ["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","sierpień","wrzesień","październik","listopad","grudzień"];
@@ -557,9 +663,9 @@ function show(view, msg){
   $("vLogin").hidden = view!=="login"; $("vApp").hidden = view!=="app"; $("vMsg").hidden = view!=="msg";
   if (view==="msg"){ $("msgText").textContent = msg; $("msgOut").hidden = !auth.currentUser; }
 }
-const TABS=["pulpit","kalendarz","tydzien","zlecenia","podwykonawcy","raporty","dostep"];
+const TABS=["pulpit","kalendarz","tydzien","zlecenia","podwykonawcy","raporty","weryfikacja","dostep"];
 let tab="pulpit";
-function setTab(t){ tab=TABS.includes(t)?t:"pulpit"; if(tab==="raporty" && !canSeeAmounts()) tab="pulpit"; if(tab==="dostep" && !isAdmin) tab="pulpit"; for(const k of TABS) $("v-"+k).hidden = k!==tab;
+function setTab(t){ tab=TABS.includes(t)?t:"pulpit"; if((tab==="raporty"||tab==="weryfikacja") && !canSeeAmounts()) tab="pulpit"; if(tab==="dostep" && !isAdmin) tab="pulpit"; for(const k of TABS) $("v-"+k).hidden = k!==tab;
   document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===tab));
   try{ history.replaceState(null,"","#"+tab); }catch{} }
 document.querySelector("nav.tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-tab]"); if(b) setTab(b.dataset.tab); });
@@ -579,10 +685,10 @@ function render(){
   $("btnNew").hidden=!canWrite; $("btnNewSup").hidden=!isAdmin; $("fRodz").hidden=!isAdmin; $("sHint").hidden=isAdmin;
   $("btnSeed").hidden = !(isAdmin && P.length===0);
   $("tabDostep").hidden = !isAdmin;
-  $("tabRaporty").hidden = !canSeeAmounts();
+  $("tabRaporty").hidden = !canSeeAmounts(); $("tabWer").hidden = !canSeeAmounts();
   if (!isAdmin && tab==="dostep") setTab("pulpit");
-  if (!canSeeAmounts() && tab==="raporty") setTab("pulpit");
-  renderPulpit(); renderCal(); renderWeek(); renderZ(); renderSup(); renderDostep(); renderRaporty();
+  if (!canSeeAmounts() && (tab==="raporty"||tab==="weryfikacja")) setTab("pulpit");
+  renderAlerts(); renderPulpit(); renderCal(); renderWeek(); renderZ(); renderSup(); renderDostep(); renderRaporty(); if(canSeeAmounts()) renderVer(false);
 }
 
 /* ---------- dostęp (administrator): pole uzytkownicy/{uid}.kooperacje ---------- */
@@ -761,8 +867,10 @@ function renderZ(){
   $("thWartosc").hidden=!canSeeAmounts();
   $("zStatus").innerHTML=`<option value="">Każdy status</option>`+STATUSY.map(s=>`<option ${s===zStatus?"selected":""}>${s}</option>`).join("");
   const q=zQ.trim().toLowerCase();
-  const list=Z.filter(z=>(!zSup||z.podw===zSup) && (!zStatus||z.status===zStatus) && (zClosed||zStatus||!closed(z)) &&
+  let list=Z.filter(z=>(!zSup||z.podw===zSup) && (!zStatus||z.status===zStatus) && (zClosed||zStatus||!closed(z)) &&
     (!q||[z.nr,z.opis,z.uwagi,z.rodzaj].join(" ").toLowerCase().includes(q))).sort(byDate);
+  if(zNoAmt){ const ids=new Set(bezKwoty().map(z=>z.id)); list=list.filter(z=>ids.has(z.id)); }
+  $("zNoAmtChip").hidden=!zNoAmt;
   $("zRows").innerHTML=list.map(z=>{const a=alertOf(z); return `<tr class="click ${a&&a[1]==="alert-late"?"late":""} ${closed(z)?"closed":""}" data-z="${z.id}">
     <td style="white-space:nowrap"><span class="mono">${fD(z.data)}</span>${z.data?`<br><span class="small">${DNI_K[pd(z.data).getDay()]} · tydz. ${isoWeek(z.data)}</span>`:""}</td>
     <td style="white-space:nowrap"><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td>
@@ -773,73 +881,461 @@ function renderZ(){
   e.innerHTML = Z.length? `<span>Żadne zlecenie nie pasuje do filtrów.</span>` : `<strong>Brak zleceń</strong><span>Dodaj pierwsze zlecenie przyciskiem „Nowe zlecenie”.</span>`;
 }
 
-/* ---------- raporty kwot: tylko administrator i Zakupowiec ---------- */
-const R_MIES = ["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
-function reportBounds(){
-  const year=Number($("rYear").value)||new Date().getFullYear();
-  const type=$("rPeriod").value;
-  let idx=Number($("rSlice").value)||1, startMonth=0, endMonth=11, label=String(year);
-  if(type==="month"){ startMonth=idx-1; endMonth=startMonth; label=R_MIES[startMonth]+" "+year; }
-  else if(type==="quarter"){ startMonth=(idx-1)*3; endMonth=startMonth+2; label=idx+". kwartał "+year; }
-  else if(type==="half"){ startMonth=(idx-1)*6; endMonth=startMonth+5; label=(idx===1?"I":"II")+" półrocze "+year; }
-  const start=year+"-"+String(startMonth+1).padStart(2,"0")+"-01";
-  const last=new Date(year,endMonth+1,0).getDate();
-  const end=year+"-"+String(endMonth+1).padStart(2,"0")+"-"+String(last).padStart(2,"0");
-  return {start,end,label};
+/* ---------- wspólne: biblioteki, pliki, kwoty, projekty ---------- */
+const loadScript = src => new Promise((ok,err)=>{ const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=()=>err(new Error("Nie udało się wczytać "+src)); document.head.appendChild(s); });
+let xlsxReady=null, pdfReady=null;
+function loadXlsx(){ if(!xlsxReady) xlsxReady=(window.XLSX?Promise.resolve():loadScript("vendor/xlsx.full.min.js")).catch(e=>{xlsxReady=null; throw e;}); return xlsxReady; }
+function loadPdf(){
+  if(!pdfReady) pdfReady=(window.jspdf?Promise.resolve():loadScript("vendor/jspdf.umd.min.js"))
+    .then(()=>window.jspdf.jsPDF.API.autoTable?null:loadScript("vendor/jspdf.plugin.autotable.min.js"))
+    .then(()=>window.PDF_FONT_R?null:loadScript("vendor/pdf-fonts.js")).catch(e=>{pdfReady=null; throw e;});
+  return pdfReady;
 }
-function updateReportSlices(){
-  const type=$("rPeriod").value, sel=$("rSlice"), wrap=$("rSliceWrap");
-  const count=type==="month"?12:type==="quarter"?4:type==="half"?2:0;
-  wrap.hidden=!count;
-  if(!count){ sel.innerHTML=""; return; }
-  const old=Number(sel.value)|| (type==="month"?new Date().getMonth()+1: type==="quarter"?Math.floor(new Date().getMonth()/3)+1:Math.floor(new Date().getMonth()/6)+1);
-  const labels=type==="month"?R_MIES.map((x,i)=>[i+1,x]):type==="quarter"?[[1,"I kwartał"],[2,"II kwartał"],[3,"III kwartał"],[4,"IV kwartał"]]:[[1,"I półrocze"],[2,"II półrocze"]];
-  sel.innerHTML=labels.map(([v,l])=>`<option value="${v}">${l}</option>`).join("");
-  sel.value=String(Math.min(count,old));
+function saveBlob(name, blob){ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1500); }
+const safeName = s => String(s||"").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[łŁ]/g,"l").replace(/[^A-Za-z0-9._-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,60);
+const kw = id => { const v=V[id]?.wartosc; return v==null||v===""||!Number.isFinite(Number(v)) ? null : Number(v); };
+const r2 = v => Math.round((v||0)*100)/100;
+const zl2 = v => v==null ? "—" : Number(v).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2});
+const pct = (v,t) => t ? (v/t*100).toLocaleString("pl-PL",{minimumFractionDigits:1,maximumFractionDigits:1})+"%" : "—";
+const projOf = z => String(z.projekt||z.nr||"").trim();
+const normTxt = s => String(s||"").toUpperCase().replace(/Ł/g,"L").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Z0-9]+/g," ").trim();
+const tsIso = t => { const d=tsDate(t); return d ? iso(d) : ""; };
+const dniMiedzy = (a,b) => a&&b ? Math.round((pd(b)-pd(a))/864e5) : null;
+const plural = (n,a,b,c) => n===1?a:(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?b:c;
+const nowStamp = () => { const d=new Date(); return fD(iso(d))+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
+const miesNazwa = ym => ym ? MIES[+ym.slice(5)-1].replace(/^./,c=>c.toUpperCase())+" "+ym.slice(0,4) : "";
+
+/* ---------- PDF w stylu Kalkulatora stali (niebieski) ---------- */
+const PDF_BLUE=[31,78,140], PDF_LINE=[67,148,208], PDF_TXT=[21,32,43], PDF_MUTED=[86,104,122];
+const PIE_KOL=["#1f4e8c","#3a78c2","#6fa3dc","#a3c6ec","#cfe0f5","#8aa4c2","#5b7699"];
+async function newPdf(orient){
+  await loadPdf();
+  const d=new window.jspdf.jsPDF({orientation:orient||"portrait",unit:"mm",format:"a4"});
+  d.addFileToVFS("dv.ttf",window.PDF_FONT_R); d.addFont("dv.ttf","DV","normal");
+  d.addFileToVFS("dvb.ttf",window.PDF_FONT_B); d.addFont("dvb.ttf","DV","bold");
+  d.setFont("DV","normal"); return d;
 }
-function reportData(){
-  const b=reportBounds();
-  const orders=Z.filter(z=>z.status!=="Anulowane" && z.data>=b.start && z.data<=b.end);
-  const valued=orders.filter(z=>V[z.id] && V[z.id].wartosc!==null && V[z.id].wartosc!==undefined && V[z.id].wartosc!=="" && Number.isFinite(Number(V[z.id].wartosc)));
-  const sum=arr=>arr.reduce((a,z)=>a+Number(V[z.id].wartosc),0);
-  const rows=sortedP().map(p=>{
-    const all=orders.filter(z=>z.podw===p.id);
-    const withValue=valued.filter(z=>z.podw===p.id);
-    const total=sum(withValue);
-    return {id:p.id,nazwa:p.nazwa,orders:all.length,count:withValue.length,total,average:withValue.length?total/withValue.length:null};
-  }).filter(x=>x.orders||x.count).sort((a,b)=>b.total-a.total||a.nazwa.localeCompare(b.nazwa,"pl"));
-  return {bounds:b,orders,valued,total:sum(valued),average:valued.length?sum(valued)/valued.length:null,rows};
+let logoPng=null;
+async function logoData(){
+  if(logoPng) return logoPng;
+  try{
+    const svg=await (await fetch("icon.svg")).text();
+    const img=new Image(); img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); await img.decode();
+    const c=document.createElement("canvas"); c.width=c.height=256; c.getContext("2d").drawImage(img,0,0,256,256);
+    return logoPng=c.toDataURL("image/png");
+  }catch{ return null; }
+}
+function pdfHeader(d,{title,okres,sub,meta,logo}){
+  const W=d.internal.pageSize.getWidth(); let x=14;
+  if(logo){ d.addImage(logo,"PNG",14,9,15,15); x=32; }
+  d.setFont("DV","bold"); d.setFontSize(16); d.setTextColor(...PDF_TXT); d.text(title,x,15);
+  if(okres){ d.setFontSize(10.5); d.setTextColor(...PDF_BLUE); d.text(okres,x,21); }
+  d.setFont("DV","normal"); d.setFontSize(8.5); d.setTextColor(...PDF_MUTED);
+  if(sub) d.text(sub,x,26);
+  let y=12; (meta||[]).forEach(t=>{ d.text(t,W-14,y,{align:"right"}); y+=4.4; });
+  const ly=Math.max(y,29.5); d.setDrawColor(...PDF_LINE); d.setLineWidth(.8); d.line(14,ly,W-14,ly);
+  return ly+5;
+}
+function pdfFooter(d,note){
+  const n=d.internal.getNumberOfPages(), W=d.internal.pageSize.getWidth(), H=d.internal.pageSize.getHeight();
+  for(let i=1;i<=n;i++){ d.setPage(i); d.setFont("DV","normal"); d.setFontSize(7.5); d.setTextColor(120,132,144);
+    d.text(note,14,H-8); d.text("Strona "+i+" z "+n,W-14,H-8,{align:"right"}); }
+}
+const tStyle={font:"DV",fontSize:8.2,cellPadding:1.6,lineColor:[211,218,225],lineWidth:.1,textColor:PDF_TXT};
+const hStyle={fillColor:PDF_BLUE,textColor:255,fontStyle:"bold",halign:"center",valign:"middle"};
+const fStyle={fillColor:[223,234,247],textColor:PDF_TXT,fontStyle:"bold"};
+function pieCanvas(parts){
+  const c=document.createElement("canvas"); c.width=c.height=600; const g=c.getContext("2d");
+  const tot=parts.reduce((a,p)=>a+p.v,0); let a0=-Math.PI/2;
+  parts.forEach((p,i)=>{ const a1=a0+2*Math.PI*p.v/tot; g.beginPath(); g.moveTo(300,300); g.arc(300,300,280,a0,a1); g.closePath();
+    g.fillStyle=PIE_KOL[i%PIE_KOL.length]; g.fill(); g.lineWidth=6; g.strokeStyle="#fff"; g.stroke();
+    const sh=p.v/tot; if(sh>=.06){ const m=(a0+a1)/2; g.fillStyle=i<2||i===6?"#fff":"#15202b"; g.font="bold 40px sans-serif"; g.textAlign="center"; g.textBaseline="middle";
+      g.fillText(Math.round(sh*100)+"%",300+180*Math.cos(m),300+180*Math.sin(m)); }
+    a0=a1; });
+  return c.toDataURL("image/png");
+}
+// wykres kołowy + legenda + podsumowanie pod tabelą
+function pdfPie(d,y,parts,title,sum){
+  const W=d.internal.pageSize.getWidth(), H=d.internal.pageSize.getHeight();
+  if(y+56>H-14){ d.addPage(); y=16; }
+  d.setDrawColor(201,216,234); d.setLineWidth(.3); d.roundedRect(14,y,W-28,52,1.5,1.5);
+  const tot=parts.reduce((a,p)=>a+p.v,0);
+  if(tot>0){ d.addImage(pieCanvas(parts),"PNG",18,y+4,44,44); }
+  let ly=y+8; const lx=67;
+  d.setFont("DV","bold"); d.setFontSize(9); d.setTextColor(...PDF_BLUE); d.text(title,lx,ly); ly+=5.5;
+  d.setFontSize(8.2);
+  parts.forEach((p,i)=>{ const col=PIE_KOL[i%PIE_KOL.length]; d.setFillColor(parseInt(col.slice(1,3),16),parseInt(col.slice(3,5),16),parseInt(col.slice(5,7),16));
+    d.rect(lx,ly-2.6,3,3,"F"); d.setFont("DV","normal"); d.setTextColor(...PDF_TXT);
+    d.text(d.splitTextToSize(p.n,40)[0],lx+5,ly); d.setFont("DV","bold"); d.text(pct(p.v,tot),lx+60,ly,{align:"right"}); ly+=5; });
+  const sx=W-14-56; d.setDrawColor(201,216,234); d.line(sx-5,y+6,sx-5,y+46);
+  let sy=y+12; sum.forEach(([k,v],i)=>{ const big=i===sum.length-1; d.setFont("DV","normal"); d.setFontSize(big?10.5:8.5); d.setTextColor(...PDF_MUTED); d.text(k,sx,sy);
+    d.setFont("DV","bold"); d.setTextColor(...PDF_TXT); d.text(v,W-18,sy,{align:"right"}); sy+=big?9:7; });
+  return y+58;
+}
+function pieParts(rows, n=6){
+  const L=rows.filter(r=>r.sum>0).map(r=>({n:r.name,v:r.sum})).sort((a,b)=>b.v-a.v);
+  if(L.length<=n+1) return L;
+  return L.slice(0,n).concat([{n:"Pozostałe",v:L.slice(n).reduce((a,p)=>a+p.v,0)}]);
+}
+
+/* ---------- raporty kwot: grupowanie, zestawienia projektów, Excel, PDF ---------- */
+const R={period:"month", year:new Date().getFullYear(), slice:new Date().getMonth()+1, od:"", do:"", group:"podw", sup:"", open:new Set(), proj:""};
+const GRUPY={
+  podw:   {t:"Podwykonawca",   k:z=>z.podw,                 n:k=>supName(k),                       sub:"rodzaj"},
+  rodzaj: {t:"Rodzaj usługi",  k:z=>z.rodzaj||"",           n:k=>k||"(bez rodzaju)",               sub:"podw"},
+  projekt:{t:"Projekt",        k:z=>projOf(z),              n:k=>k||"(bez projektu)",              sub:"podw"},
+  mies:   {t:"Miesiąc",        k:z=>(z.data||"").slice(0,7),n:k=>miesNazwa(k)||"—",                sub:"podw"}
+};
+const subKey=(t,z)=> t==="podw"? z.podw : (z.rodzaj||"");
+const subName=(t,k)=> t==="podw"? supName(k) : (k||"(bez rodzaju)");
+const SLICES={month:MIES.map((m,i)=>[i+1,m.replace(/^./,c=>c.toUpperCase())]), quarter:[[1,"I kwartał"],[2,"II kwartał"],[3,"III kwartał"],[4,"IV kwartał"]], half:[[1,"I półrocze"],[2,"II półrocze"]]};
+function rBounds(){
+  const y=R.year;
+  if(R.period==="custom"){ const od=R.od||(y+"-01-01"), dd=R.do||today(); return {start:od<=dd?od:dd, end:od<=dd?dd:od, label:`${fD(od)} – ${fD(dd)}`}; }
+  let sm=0, em=11, label="Rok "+y;
+  if(R.period==="month"){ sm=R.slice-1; em=sm; label=SLICES.month[sm][1]+" "+y; }
+  else if(R.period==="quarter"){ sm=(R.slice-1)*3; em=sm+2; label=SLICES.quarter[R.slice-1][1]+" "+y; }
+  else if(R.period==="half"){ sm=(R.slice-1)*6; em=sm+5; label=SLICES.half[R.slice-1][1]+" "+y; }
+  return {start:`${y}-${String(sm+1).padStart(2,"0")}-01`, end:iso(new Date(y,em+1,0)), label};
+}
+function rData(){
+  const b=rBounds(), G=GRUPY[R.group];
+  const orders=Z.filter(z=>z.status!=="Anulowane" && z.data && z.data>=b.start && z.data<=b.end && (!R.sup||z.podw===R.sup));
+  const sumOf=L=>r2(L.reduce((a,z)=>a+(kw(z.id)||0),0)), cnt=L=>L.filter(z=>kw(z.id)!=null).length;
+  const m=new Map(); orders.forEach(z=>{ const k=G.k(z); if(!m.has(k)) m.set(k,[]); m.get(k).push(z); });
+  const rows=[...m].map(([k,L])=>{
+    const sm=new Map(); L.forEach(z=>{ const s=subKey(G.sub,z); if(!sm.has(s)) sm.set(s,[]); sm.get(s).push(z); });
+    const subs=[...sm].map(([s,SL])=>({k:s,name:subName(G.sub,s),orders:SL,count:SL.length,valued:cnt(SL),sum:sumOf(SL),proj:[...new Set(SL.map(projOf).filter(Boolean))]}))
+      .sort((a,c)=>c.sum-a.sum||c.count-a.count||a.name.localeCompare(c.name,"pl"));
+    return {k,name:G.n(k),orders:L.slice().sort(byDate),count:L.length,valued:cnt(L),sum:sumOf(L),subs,proj:[...new Set(L.map(projOf).filter(Boolean))]};
+  });
+  rows.sort(R.group==="mies" ? (a,c)=>a.k.localeCompare(c.k) : (a,c)=>c.sum-a.sum||c.count-a.count||a.name.localeCompare(c.name,"pl"));
+  return {b,G,orders,rows,total:sumOf(orders),valued:cnt(orders)};
+}
+function fillReportControls(){
+  $("rPeriod").value=R.period; $("rYear").value=R.year;
+  const sl=SLICES[R.period]; $("rSliceWrap").hidden=!sl; $("rYearWrap").hidden=R.period==="custom"; $("rCustom").hidden=R.period!=="custom";
+  if(sl){ $("rSlice").innerHTML=sl.map(([v,l])=>`<option value="${v}">${l}</option>`).join(""); R.slice=Math.min(R.slice,sl.length); $("rSlice").value=String(R.slice); }
+  $("rOd").value=R.od; $("rDo").value=R.do;
+  document.querySelectorAll("#rGroup button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.g===R.group?"true":"false"));
+  const cur=R.sup; $("rSup").innerHTML=`<option value="">Wszyscy podwykonawcy</option>`+sortedP().map(p=>`<option value="${p.id}">${esc(p.nazwa)}</option>`).join(""); $("rSup").value=cur;
 }
 function renderRaporty(){
   if(!canSeeAmounts()) return;
-  const r=reportData(), fmt=moneyText;
-  $("rRange").textContent=`Okres: ${r.bounds.label} (${fD(r.bounds.start)} – ${fD(r.bounds.end)}) · według daty odbioru`;
-  $("rTotal").textContent=fmt(r.total);
-  $("rAverage").textContent=r.average===null?"—":fmt(r.average);
-  $("rAverageHint").textContent=r.valued.length?`średnia z ${r.valued.length} wycenionych zleceń`:"brak wycenionych zleceń";
-  $("rCount").textContent=String(r.valued.length);
-  $("rCountHint").textContent=`z ${r.orders.length} wszystkich nieanulowanych zleceń`;
-  $("rSupCount").textContent=String(r.rows.filter(x=>x.count>0).length);
-  $("rRows").innerHTML=r.rows.length?r.rows.map(x=>`<tr><td class="strong"><span class="sw" style="background:${supColor(x.id)}"></span>${esc(x.nazwa)}</td><td class="num">${x.orders}</td><td class="num">${x.count}</td><td class="num">${fmt(x.total)}</td><td class="num">${x.average===null?"—":fmt(x.average)}</td></tr>`).join("")+`<tr><td class="strong">RAZEM</td><td class="num">${r.orders.length}</td><td class="num">${r.valued.length}</td><td class="num strong">${fmt(r.total)}</td><td class="num strong">${r.average===null?"—":fmt(r.average)}</td></tr>`:`<tr><td colspan="5" class="small">Brak zleceń w wybranym okresie.</td></tr>`;
-  $("rNote").textContent=`Raport obejmuje ${r.orders.length} nieanulowanych zleceń z datą odbioru w wybranym okresie. Kwoty podsumowano dla ${r.valued.length} zleceń z zapisaną wartością; średnia to suma kwot podzielona przez liczbę wycenionych zleceń. Zlecenia bez kwoty są widoczne w liczbie zleceń, ale nie wpływają na sumę ani średnią.`;
+  fillReportControls();
+  const D=rData(), G=D.G;
+  $("rRange").textContent=`Okres: ${D.b.label} (${fD(D.b.start)} – ${fD(D.b.end)}) · według daty odbioru, bez anulowanych`;
+  $("rTotal").textContent=zl2(D.total)+" zł";
+  $("rCount").textContent=`${D.valued} z ${D.orders.length}`;
+  $("rCountHint").textContent=D.orders.length-D.valued ? `${D.orders.length-D.valued} ${plural(D.orders.length-D.valued,"czeka","czekają","czeka")} na kwotę` : "wszystkie wycenione";
+  $("rAverage").textContent=D.valued? zl2(D.total/D.valued)+" zł" : "—";
+  const top=D.rows.filter(r=>r.sum>0).sort((a,c)=>c.sum-a.sum)[0];
+  $("rTopLbl").textContent="Największy · "+G.t.toLowerCase(); $("rTop").textContent=top? top.name : "—"; $("rTopHint").textContent=top? pct(top.sum,D.total)+" wartości" : "brak kwot";
+  $("rHead").innerHTML=`<tr><th>${G.t}</th><th class="num">Zlecenia</th><th class="num">Z kwotą</th><th class="num">Wartość</th><th class="num">Udział</th><th></th></tr>`;
+  $("rTitle").textContent="Według: "+G.t.toLowerCase();
+  const max=Math.max(...D.rows.map(r=>r.sum),0);
+  $("rRows").innerHTML = D.rows.length ? D.rows.map(r=>{
+    const open=R.open.has(r.k);
+    const subTxt=r.subs.map(s=>`${esc(s.name)} ${s.count}`).join(" · ");
+    const projBtn=R.group==="projekt" && r.k && r.count>=2 ? `<button class="btn sm" type="button" data-rproj="${esc(r.k)}">Zestawienie</button>` : "";
+    let h=`<tr class="click ${open?"open":""}" data-rk="${esc(r.k)}"><td><b>${esc(r.name)}</b><br><span class="small">${subTxt}</span></td><td class="num">${r.count}</td><td class="num">${r.valued}</td><td class="num">${zl2(r.sum)} zł</td><td class="num">${pct(r.sum,D.total)}</td>
+      <td class="barcell"><div class="rbar"><span style="width:${max?Math.max(r.sum/max*100,r.sum?2:0):0}%"></span></div>${projBtn}</td></tr>`;
+    if(open) h+=`<tr class="rsub"><td colspan="6"><table><thead><tr><th>Data odbioru</th><th>Podwykonawca</th><th>Nr / projekt</th><th>Element / opis</th><th>Rodzaj</th><th>Status</th><th class="num">Wartość</th></tr></thead><tbody>${
+      r.orders.map(z=>`<tr class="click" data-z="${z.id}"><td class="mono">${fD(z.data)}</td><td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(projOf(z))}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td><td>${pill(z.status)}</td><td class="num">${kw(z.id)==null?'<span class="small">brak kwoty</span>':zl2(kw(z.id))+" zł"}</td></tr>`).join("")}</tbody></table></td></tr>`;
+    return h; }).join("") + `<tr class="tot"><td>Razem</td><td class="num">${D.orders.length}</td><td class="num">${D.valued}</td><td class="num">${zl2(D.total)} zł</td><td class="num">${D.total?"100%":"—"}</td><td></td></tr>`
+    : `<tr><td colspan="6" class="small">Brak zleceń w wybranym okresie.</td></tr>`;
+  renderProjekt();
 }
-function exportReportCsv(){
-  if(!canSeeAmounts()) return;
-  const r=reportData();
-  const q=v=>{const x=String(v??"");return /[;"\n\r]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;};
-  const rows=[["Raport wartości zamówień",r.bounds.label],["Podwykonawca","Liczba zleceń","Z kwotą","Łączna wartość [zł]","Średnia [zł]"]];
-  for(const x of r.rows) rows.push([x.nazwa,x.orders,x.count,x.total.toFixed(2),x.average===null?"":x.average.toFixed(2)]);
-  rows.push(["RAZEM",r.orders.length,r.valued.length,r.total.toFixed(2),r.average===null?"":r.average.toFixed(2)]);
-  const csv="\uFEFF"+rows.map(row=>row.map(q).join(";")).join("\r\n");
-  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  a.download=`raport-kwot-${r.bounds.start}-${r.bounds.end}.csv`; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
-  toast("Wyeksportowano raport kwot");
+// zestawienie jednego projektu (wszystkie jego zlecenia, bez względu na okres)
+function projData(k){
+  const L=Z.filter(z=>projOf(z)===k && z.status!=="Anulowane").sort((a,b)=>(tsIso(a.utworzono)||a.data||"").localeCompare(tsIso(b.utworzono)||b.data||""));
+  const zam=L.map(z=>tsIso(z.utworzono)||z.data).filter(Boolean).sort(), odb=L.map(z=>z.odebrano).filter(Boolean).sort();
+  const sum=r2(L.reduce((a,z)=>a+(kw(z.id)||0),0));
+  return {k,L,sum,first:zam[0]||"",last:odb.length?odb[odb.length-1]:"",odebrane:L.filter(z=>z.status==="Odebrane").length};
 }
-$("rPeriod").addEventListener("change",()=>{updateReportSlices();renderRaporty();});
-$("rYear").addEventListener("change",renderRaporty);
-$("rSlice").addEventListener("change",renderRaporty);
-$("btnReportCsv").addEventListener("click",exportReportCsv);
-updateReportSlices();
+function renderProjekt(){
+  const box=$("rProj"); if(!R.proj){ box.hidden=true; return; }
+  const P_=projData(R.proj); if(!P_.L.length){ R.proj=""; box.hidden=true; return; }
+  box.hidden=false;
+  $("rpTitle").textContent="Projekt "+P_.k;
+  $("rpSum").textContent=zl2(P_.sum)+" zł"; $("rpCnt").textContent=P_.L.length; $("rpCntH").textContent=`${P_.odebrane} ${plural(P_.odebrane,"odebrane","odebrane","odebranych")}`;
+  const dni=dniMiedzy(P_.first,P_.last); $("rpDni").textContent=dni==null?"—":dni+" "+plural(dni,"dzień","dni","dni"); $("rpDniH").textContent=P_.first?`${fDs(P_.first)} – ${P_.last?fDs(P_.last):"w toku"}`:"";
+  $("rpRows").innerHTML=P_.L.map(z=>{ const zm=tsIso(z.utworzono)||""; const d=dniMiedzy(zm,z.odebrano);
+    return `<tr class="click" data-z="${z.id}"><td>${esc(z.opis||z.rodzaj||"zlecenie")}<br><span class="small">${esc(z.rodzaj)}</span></td><td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${fD(zm)}</td>
+      <td>${z.odebrano?`<span class="mono">${fD(z.odebrano)}</span>`:`<span class="pill st-Gotowe">odbiór ${fDs(z.data)}</span>`}</td><td class="num">${d==null?"–":d}</td><td class="num">${kw(z.id)==null?'<span class="small">brak kwoty</span>':zl2(kw(z.id))+" zł"}</td></tr>`; }).join("")
+    + `<tr class="tot"><td colspan="5">Razem ${esc(P_.k)}</td><td class="num">${zl2(P_.sum)} zł</td></tr>`;
+}
+async function rXlsx(){
+  try{
+    await loadXlsx(); const D=rData(), G=D.G, X=window.XLSX;
+    const subLbl=G.sub==="podw"?"Podwykonawca":"Rodzaj usługi";
+    const aoa=[["Raport wartości zamówień – Kooperacje"],["Okres",`${D.b.label} (${fD(D.b.start)} – ${fD(D.b.end)})`],["Grupowanie",G.t],["Podwykonawca",R.sup?supName(R.sup):"wszyscy"],["Sporządził",me.nazwa||me.login],["Data",fD(today())],[],
+      [G.t,subLbl,"Projekty","Zlecenia","Z kwotą","Wartość [zł]","Udział"]];
+    const r0=aoa.length;
+    D.rows.forEach(r=>r.subs.forEach((s,i)=>aoa.push([i?"":r.name,s.name,s.proj.join(", "),s.count,s.valued,s.sum,D.total?s.sum/D.total:0])));
+    aoa.push(["Razem","","",D.orders.length,D.valued,D.total,D.total?1:0]);
+    const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:24},{wch:20},{wch:34},{wch:9},{wch:9},{wch:15},{wch:9}];
+    for(let r=r0;r<aoa.length;r++){ const a=ws[X.utils.encode_cell({r,c:5})], b=ws[X.utils.encode_cell({r,c:6})]; if(a&&a.t==="n") a.z='#,##0.00 "zł"'; if(b&&b.t==="n") b.z="0.0%"; }
+    const lista=[["Data odbioru","Podwykonawca","Nr / projekt","Element / opis","Rodzaj","Ilość","Status","Zamówiono","Odebrano","Wartość [zł]","Uwagi"]];
+    D.orders.slice().sort(byDate).forEach(z=>lista.push([fD(z.data),supName(z.podw),projOf(z),z.opis||"",z.rodzaj||"",z.ilosc??"",z.status,fD(tsIso(z.utworzono)),fD(z.odebrano),kw(z.id)??"",z.uwagi||""]));
+    const ws2=X.utils.aoa_to_sheet(lista); ws2["!cols"]=[{wch:12},{wch:16},{wch:16},{wch:30},{wch:16},{wch:7},{wch:16},{wch:12},{wch:12},{wch:13},{wch:30}];
+    for(let r=1;r<lista.length;r++){ const c=ws2[X.utils.encode_cell({r,c:9})]; if(c&&c.t==="n") c.z='#,##0.00 "zł"'; }
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Raport"); X.utils.book_append_sheet(wb,ws2,"Zlecenia");
+    saveBlob(`raport-kooperacje-${safeName(D.b.label)}.xlsx`, new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}));
+    toast("Pobrano raport w Excelu");
+  }catch(x){ failed(x); }
+}
+async function rPdf(){
+  try{
+    const D=rData(), G=D.G, d=await newPdf("portrait"), logo=$("rLogo").checked? await logoData():null;
+    const subLbl=G.sub==="podw"?"Podwykonawca":"Rodzaj usługi", zProj=R.group!=="projekt";
+    let y=pdfHeader(d,{title:"Raport wartości zamówień",okres:`Okres: ${D.b.label} · ${fD(D.b.start)} – ${fD(D.b.end)}`,
+      sub:`Kooperacje · według: ${G.t.toLowerCase()} · ${R.sup?supName(R.sup):"wszyscy podwykonawcy"}`,meta:["Sporządził: "+(me.nazwa||me.login),"Data: "+fD(today())],logo});
+    const head=[[subLbl,...(zProj?["Projekty"]:[]),"Zlecenia","Z kwotą","Wartość [zł]","Udział"]], body=[], ncol=head[0].length;
+    D.rows.forEach(r=>{ body.push([{content:r.name+"   ·   "+zl2(r.sum)+" zł ("+pct(r.sum,D.total)+")",colSpan:ncol,styles:{fontStyle:"bold",textColor:PDF_BLUE,fillColor:[255,255,255],fontSize:8.8}}]);
+      r.subs.forEach(s=>body.push([s.name,...(zProj?[s.proj.join(", ")]:[]),s.count,s.valued,zl2(s.sum),pct(s.sum,D.total)])); });
+    const cs=zProj?{0:{cellWidth:38},1:{cellWidth:62},2:{halign:"right"},3:{halign:"right"},4:{halign:"right"},5:{halign:"right"}}:{0:{cellWidth:70},1:{halign:"right"},2:{halign:"right"},3:{halign:"right"},4:{halign:"right"}};
+    d.autoTable({head,body,foot:[[{content:"Razem",styles:{halign:"left"}},...(zProj?[""]:[]),D.orders.length,D.valued,zl2(D.total),D.total?"100%":"—"]],startY:y,styles:tStyle,headStyles:hStyle,footStyles:{...fStyle,halign:"right"},
+      columnStyles:cs,alternateRowStyles:{fillColor:[243,247,252]},margin:{left:14,right:14,bottom:16},showFoot:"lastPage"});
+    y=d.lastAutoTable.finalY+6;
+    pdfPie(d,y,pieParts(D.rows),"Udział w wartości",[["Zlecenia z kwotą",`${D.valued} z ${D.orders.length}`],["Średnio na zlecenie",D.valued?zl2(D.total/D.valued)+" zł":"—"],["Razem",zl2(D.total)+" zł"]]);
+    pdfFooter(d,"Kooperacje · wydruk "+nowStamp());
+    d.save(`raport-kooperacje-${safeName(D.b.label)}.pdf`);
+  }catch(x){ failed(x); }
+}
+async function projXlsx(){
+  try{
+    await loadXlsx(); const P_=projData(R.proj), X=window.XLSX;
+    const aoa=[["Zestawienie projektu "+P_.k],["Zlecenia",P_.L.length],["Wartość",P_.sum],["Data",fD(today())],[],["Element / opis","Rodzaj","Podwykonawca","Zamówiono","Termin odbioru","Odebrano","Dni","Wartość [zł]"]];
+    const r0=aoa.length;
+    P_.L.forEach(z=>{ const zm=tsIso(z.utworzono); aoa.push([z.opis||"",z.rodzaj||"",supName(z.podw),fD(zm),fD(z.data),fD(z.odebrano),dniMiedzy(zm,z.odebrano)??"",kw(z.id)??""]); });
+    aoa.push(["Razem","","","","","","",P_.sum]);
+    const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:30},{wch:16},{wch:16},{wch:12},{wch:14},{wch:12},{wch:6},{wch:14}];
+    for(let r=r0;r<aoa.length;r++){ const c=ws[X.utils.encode_cell({r,c:7})]; if(c&&c.t==="n") c.z='#,##0.00 "zł"'; }
+    const c2=ws["B3"]; if(c2) c2.z='#,##0.00 "zł"';
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Projekt");
+    saveBlob(`projekt-${safeName(P_.k)}.xlsx`, new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}));
+  }catch(x){ failed(x); }
+}
+async function projPdf(){
+  try{
+    const P_=projData(R.proj), d=await newPdf("portrait"), logo=$("rLogo").checked? await logoData():null;
+    let y=pdfHeader(d,{title:"Zestawienie projektu "+P_.k,okres:`Okres: ${fD(P_.first)} – ${P_.last?fD(P_.last):"w toku"}`,
+      sub:`Kooperacje · ${P_.L.length} ${plural(P_.L.length,"zlecenie","zlecenia","zleceń")} · ${[...new Set(P_.L.map(z=>supName(z.podw)))].join(", ")}`,meta:["Sporządził: "+(me.nazwa||me.login),"Data: "+fD(today())],logo});
+    const body=P_.L.map(z=>{ const zm=tsIso(z.utworzono); const dd=dniMiedzy(zm,z.odebrano); return [z.opis||z.rodzaj||"zlecenie",z.rodzaj||"",supName(z.podw),fD(zm),z.odebrano?fD(z.odebrano):"odbiór "+fD(z.data),dd==null?"–":dd,kw(z.id)==null?"brak":zl2(kw(z.id))]; });
+    d.autoTable({head:[["Element / opis","Rodzaj","Podwykonawca","Zamówiono","Odebrano","Dni","Wartość [zł]"]],body,foot:[[{content:"Razem",styles:{halign:"left"}},"","","","","",zl2(P_.sum)]],startY:y,styles:tStyle,headStyles:hStyle,footStyles:{...fStyle,halign:"right"},
+      columnStyles:{0:{cellWidth:50},5:{halign:"right"},6:{halign:"right"}},alternateRowStyles:{fillColor:[243,247,252]},margin:{left:14,right:14,bottom:16},showFoot:"lastPage"});
+    y=d.lastAutoTable.finalY+6;
+    const bySup=new Map(); P_.L.forEach(z=>{ if(kw(z.id)) bySup.set(supName(z.podw),(bySup.get(supName(z.podw))||0)+kw(z.id)); });
+    pdfPie(d,y,pieParts([...bySup].map(([name,sum])=>({name,sum}))),"Udział podwykonawców",[["Zlecenia odebrane",`${P_.odebrane} z ${P_.L.length}`],["Czas trwania",(()=>{const n=dniMiedzy(P_.first,P_.last);return n==null?"w toku":n+" "+plural(n,"dzień","dni","dni");})()],["Razem",zl2(P_.sum)+" zł"]]);
+    pdfFooter(d,"Kooperacje · wydruk "+nowStamp());
+    d.save(`projekt-${safeName(P_.k)}.pdf`);
+  }catch(x){ failed(x); }
+}
+$("rPeriod").addEventListener("change",e=>{ R.period=e.target.value; R.slice=R.period==="month"?new Date().getMonth()+1:R.period==="quarter"?Math.floor(new Date().getMonth()/3)+1:R.period==="half"?(new Date().getMonth()<6?1:2):1; R.open.clear(); renderRaporty(); });
+$("rYear").addEventListener("change",e=>{ R.year=Number(e.target.value)||new Date().getFullYear(); R.open.clear(); renderRaporty(); });
+$("rSlice").addEventListener("change",e=>{ R.slice=Number(e.target.value)||1; R.open.clear(); renderRaporty(); });
+$("rOd").addEventListener("change",e=>{ R.od=e.target.value; renderRaporty(); });
+$("rDo").addEventListener("change",e=>{ R.do=e.target.value; renderRaporty(); });
+$("rSup").addEventListener("change",e=>{ R.sup=e.target.value; R.open.clear(); renderRaporty(); });
+$("rGroup").addEventListener("click",e=>{ const b=e.target.closest("button[data-g]"); if(!b) return; R.group=b.dataset.g; R.open.clear(); renderRaporty(); });
+$("rRows").addEventListener("click",e=>{
+  const pb=e.target.closest("[data-rproj]"); if(pb){ e.stopPropagation(); R.proj=pb.dataset.rproj; renderProjekt(); $("rProj").scrollIntoView({behavior:"smooth",block:"start"}); return; }
+  if(e.target.closest("[data-z]")) return;
+  const tr=e.target.closest("tr[data-rk]"); if(!tr) return; const k=tr.dataset.rk; R.open.has(k)?R.open.delete(k):R.open.add(k); renderRaporty();
+});
+$("btnRXlsx").onclick=rXlsx; $("btnRPdf").onclick=rPdf;
+$("btnPXlsx").onclick=projXlsx; $("btnPPdf").onclick=projPdf; $("btnPClose").onclick=()=>{ R.proj=""; renderProjekt(); };
+
+/* ---------- projekt przy zapisie: ta sama nazwa po ponad miesiącu → pytanie ---------- */
+function askProject(nr, data, groups){
+  return new Promise(res=>{
+    const dlg=$("dlgP"), nowy=`${nr} · ${data.slice(5,7)}.${data.slice(0,4)}`;
+    let key=nowy, i=2; while(Z.some(z=>projOf(z)===key)) key=`${nowy} (${i++})`;
+    $("pqT").textContent=`Projekt „${nr}” już był`;
+    const g=groups[0];
+    $("pqTxt").innerHTML=`Ostatnie zlecenie dla ${esc(nr)} było <b>${fD(g.last)}</b>, czyli ponad miesiąc temu (${g.n} ${plural(g.n,"zlecenie","zlecenia","zleceń")}${canSeeAmounts()&&g.sum?", "+zl2(g.sum)+" zł":""}). Do którego projektu dodać to zlecenie?`;
+    $("pqCh").innerHTML=`<label class="on"><input type="radio" name="pq" value="${esc(key)}" checked><b>Nowy projekt ${esc(key)}</b><span class="small">osobne zestawienie</span></label>`+
+      groups.map(x=>`<label><input type="radio" name="pq" value="${esc(x.k)}"><b>Dopisz do ${esc(x.k)}</b><span class="small">${x.n} ${plural(x.n,"zlecenie","zlecenia","zleceń")}, ostatnie ${fD(x.last)}</span></label>`).join("");
+    $("pqCh").onchange=()=>$("pqCh").querySelectorAll("label").forEach(l=>l.classList.toggle("on",l.querySelector("input").checked));
+    const done=v=>{ dlg.removeEventListener("close",onClose); res(v); };
+    const onClose=()=>done(dlg.returnValue==="ok"? ($("pqCh").querySelector("input:checked")?.value ?? null) : null);
+    dlg.returnValue=""; dlg.addEventListener("close",onClose); dlg.showModal();
+  });
+}
+// zwraca klucz projektu do zapisania w polu `projekt` ("" = taki sam jak nr), albo null gdy anulowano
+async function resolveProject(d){
+  const cur=zId? Z.find(x=>x.id===zId) : null, nr=(d.nr||"").trim();
+  if(!nr) return "";
+  if(cur && normTxt(cur.nr)===normTxt(nr)) return cur.projekt||"";
+  const others=Z.filter(z=>z.id!==zId && z.status!=="Anulowane" && normTxt(z.nr)===normTxt(nr));
+  if(!others.length) return "";
+  const gm=new Map();
+  others.forEach(z=>{ const k=projOf(z), last=[z.data,tsIso(z.utworzono),z.odebrano].filter(Boolean).sort().pop()||""; const g=gm.get(k)||{k,n:0,last:"",sum:0}; g.n++; if(last>g.last) g.last=last; g.sum+=kw(z.id)||0; gm.set(k,g); });
+  const G=[...gm.values()].sort((a,b)=>b.last.localeCompare(a.last));
+  const kiedy=d.data||today();
+  const key = (!G[0].last || G[0].last>=addD(kiedy,-30)) ? G[0].k : await askProject(nr,kiedy,G);
+  if(key==null) return null;
+  return normTxt(key)===normTxt(nr) ? "" : key;
+}
+
+/* ---------- weryfikacja kosztów z pliku przyjęć na magazyn ---------- */
+const VER={plik:"",rows:[],months:[],ym:"",manual:{},res:null};
+let WER={};   // koop_ustawienia/weryfikacje: m_RRRR-MM → {czas, kto, plik}
+const KOL={numer:["NUMER"],data:["DATA PRZYJECIA","DATA"],dost:["DOSTAWCA ODBIORCA SYMBOL","DOSTAWCA","KONTRAHENT"],netto:["WARTOSC NETTO","NETTO"],uwagi:["UWAGI"]};
+function cellDate(v){
+  if(v instanceof Date && !isNaN(v)) return iso(v);
+  if(typeof v==="number" && v>20000 && v<80000){ const d=new Date(Math.round((v-25569)*864e5)); return iso(new Date(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())); }
+  const s=String(v||"").trim(); let m=s.match(/^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})/); if(m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+  m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); return m? m[0] : "";
+}
+function cellNum(v){ if(typeof v==="number") return v; const s=String(v||"").replace(/\s|zł/g,"").replace(",","."); if(!s) return null; const n=Number(s); return Number.isFinite(n)?n:null; }
+async function readVerFile(file){
+  try{
+    await loadXlsx(); const X=window.XLSX;
+    const wb=X.read(await file.arrayBuffer(),{cellDates:true}); const ws=wb.Sheets[wb.SheetNames[0]];
+    const aoa=X.utils.sheet_to_json(ws,{header:1,raw:true,defval:""});
+    const hi=aoa.slice(0,15).findIndex(r=>r.some(c=>normTxt(c)==="UWAGI"));
+    if(hi<0) throw new Error("Nie znalazłem w pliku nagłówka z kolumną „Uwagi”. Wgraj eksport przyjęć z magazynu.");
+    const H=aoa[hi].map(normTxt), col={};
+    for(const [k,names] of Object.entries(KOL)) col[k]=names.map(n=>H.findIndex(h=>h===n)).find(i=>i>=0) ?? names.map(n=>H.findIndex(h=>h.startsWith(n))).find(i=>i>=0) ?? -1;
+    const brak=Object.entries(col).filter(([,i])=>i<0).map(([k])=>({numer:"Numer",data:"Data przyjęcia",dost:"Dostawca",netto:"Wartość netto",uwagi:"Uwagi"}[k]));
+    if(brak.length) throw new Error("W pliku brakuje kolumn: "+brak.join(", ")+".");
+    VER.rows=aoa.slice(hi+1).map((r,i)=>({i,pz:String(r[col.numer]||"").trim(),data:cellDate(r[col.data]),dost:String(r[col.dost]||"").trim(),netto:cellNum(r[col.netto]),uwagi:String(r[col.uwagi]||"").trim()})).filter(r=>r.pz&&r.data);
+    if(!VER.rows.length) throw new Error("W pliku nie ma żadnych przyjęć.");
+    VER.plik=file.name; VER.manual={};
+    VER.months=[...new Set(VER.rows.map(r=>r.data.slice(0,7)))].sort().reverse();
+    const cel=verMonth(); VER.ym=VER.months.includes(cel)? cel : VER.months[0];
+    renderVer(true);
+  }catch(x){ toast(x.message||String(x)); }
+}
+function matchSup(dost){
+  const n=normTxt(dost); if(!n) return "";
+  for(const p of P){ const pn=normTxt(p.nazwa); const al=normTxt(p.symbolMag||""); if(!pn) continue;
+    if(n===pn || n.startsWith(pn+" ") || (" "+n+" ").includes(" "+pn+" ") || (al && (" "+n+" ").includes(" "+al+" "))) return p.id;
+    const p1=pn.split(" ")[0], n1=n.split(" ")[0]; if(p1.length>=4 && p1===n1) return p.id; }
+  return "";
+}
+function nrInText(nr, txt){ const N=normTxt(nr); if(N.length<3) return false; return (" "+normTxt(txt)+" ").includes(" "+N+" "); }
+function computeVer(){
+  const ym=VER.ym, rowsM=VER.rows.filter(r=>r.data.slice(0,7)===ym);
+  const byZ=new Map(), niedop=[]; let pominiete=0;
+  rowsM.forEach(r=>{
+    const sup=matchSup(r.dost);
+    let z=null;
+    if(VER.manual[r.i]) z=Z.find(x=>x.id===VER.manual[r.i])||null;
+    if(!z){ let c=Z.filter(x=>x.status!=="Anulowane" && (nrInText(x.nr,r.uwagi)||(x.projekt&&nrInText(x.projekt,r.uwagi))));
+      if(sup && c.some(x=>x.podw===sup)) c=c.filter(x=>x.podw===sup);
+      c.sort((a,b)=>Math.abs(dniMiedzy(r.data,a.odebrano||a.data)||999)-Math.abs(dniMiedzy(r.data,b.odebrano||b.data)||999));
+      z=c[0]||null; }
+    if(z){ const e=byZ.get(z.id)||{z,pz:[]}; e.pz.push(r); byZ.set(z.id,e); }
+    else if(sup) niedop.push({r,sup});
+    else pominiete++;
+  });
+  const wyn=[...byZ.values()].map(e=>{ const plik=e.pz.some(r=>r.netto!=null)? r2(e.pz.reduce((a,r)=>a+(r.netto||0),0)) : null, app=kw(e.z.id);
+    const st= plik==null? "nokw" : app==null? "brak" : Math.abs(app-plik)<0.005? "ok" : "roznica"; return {...e,plik,app,st}; });
+  const ids=new Set(byZ.keys());
+  const bezpz=Z.filter(z=>z.status==="Odebrane" && (z.odebrano||"").slice(0,7)===ym && !ids.has(z.id)).map(z=>({z,pz:[],plik:null,app:kw(z.id),st:"bezpz"}));
+  const order={roznica:0,brak:1,bezpz:2,nokw:3,ok:4};
+  const all=wyn.concat(bezpz).sort((a,b)=>order[a.st]-order[b.st]||byDate(a.z,b.z));
+  return {ym,rowsM,all,niedop,pominiete,cnt:k=>all.filter(x=>x.st===k).length,sumApp:r2(all.reduce((a,x)=>a+(x.app||0),0)),sumPlik:r2(all.reduce((a,x)=>a+(x.plik||0),0))};
+}
+const VST={ok:["p-ok","zgodne"],roznica:["p-warn","różnica"],brak:["p-bad","brak kwoty"],bezpz:["p-bad","bez przyjęcia PZ"],nokw:["p-idle","brak kwoty w pliku"]};
+function renderVer(zapisz){
+  const has=VER.rows.length>0; $("vRes").hidden=!has;
+  $("vMonthWrap").hidden=!has; $("vEmpty").hidden=has;
+  const last=Object.entries(WER).filter(([k])=>k.startsWith("m_")).sort().pop();
+  $("vLast").textContent= last? `Ostatnia weryfikacja: ${miesNazwa(last[0].slice(2))} (${esc(last[1].kto||"")}, ${fTs(last[1].czas)||"przed chwilą"})` : "Jeszcze nie było weryfikacji.";
+  if(!has) return;
+  $("vMonth").innerHTML=VER.months.map(m=>`<option value="${m}">${miesNazwa(m)}</option>`).join(""); $("vMonth").value=VER.ym;
+  const V_=VER.res=computeVer();
+  $("vFile").innerHTML=`<b>${esc(VER.plik)}</b><span>${V_.rowsM.length} ${plural(V_.rowsM.length,"przyjęcie","przyjęcia","przyjęć")} w miesiącu ${esc(miesNazwa(V_.ym))} · ${V_.rowsM.length-V_.pominiete} dopasowanych do zleceń · ${V_.pominiete} od innych dostawców (pominięte)</span>`;
+  $("vOk").textContent=V_.cnt("ok"); $("vDiff").textContent=V_.cnt("roznica"); $("vBrak").textContent=V_.cnt("brak"); $("vBezpz").textContent=V_.cnt("bezpz");
+  $("vTitle").textContent="Weryfikacja kosztów · "+miesNazwa(V_.ym);
+  $("vRows").innerHTML=V_.all.map(x=>{ const z=x.z, [cl,lb]=VST[x.st];
+    const roz= x.st==="roznica"? ` ${x.plik-x.app>0?"+":""}${zl2(x.plik-x.app)} zł` : "";
+    const akcja= x.st==="brak"? `<button class="btn sm primary" type="button" data-vset="${z.id}">Wpisz z pliku</button>` : x.st==="roznica"? `<button class="btn sm" type="button" data-vset="${z.id}">Przyjmij z pliku</button>` : x.st==="bezpz"? `<button class="btn sm" type="button" data-z="${z.id}">Otwórz zlecenie</button>` : "";
+    return `<tr><td><b class="mono">${esc(projOf(z)||"—")}</b><br><span class="small"><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))} · ${esc(z.opis||z.rodzaj||"")}</span></td><td class="mono">${fDs(z.odebrano||z.data)}</td>
+      <td class="mono">${x.pz.map(r=>`${esc(r.pz)}<br><span class="small">${fD(r.data)}</span>`).join("<br>")||'<span class="small">brak w pliku</span>'}</td><td>${x.pz.map(r=>esc(r.uwagi)).join("<br>")}</td>
+      <td class="num">${x.app==null?'<span class="small">—</span>':zl2(x.app)+" zł"}</td><td class="num">${x.plik==null?'<span class="small">—</span>':zl2(x.plik)+" zł"}</td><td><span class="pill ${cl}">${lb}${roz}</span></td><td>${akcja}</td></tr>`; }).join("")
+    + V_.niedop.map(({r,sup})=>{ const opcje=Z.filter(z=>z.podw===sup && z.status!=="Anulowane" && Math.abs(dniMiedzy(r.data,z.odebrano||z.data)??999)<=60).sort(byDate);
+      return `<tr><td><span class="small"><span class="sw" style="background:${supColor(sup)}"></span>${esc(supName(sup))}</span><br><select data-vman="${r.i}" aria-label="Przypisz do zlecenia"><option value="">— przypisz do zlecenia —</option>${opcje.map(z=>`<option value="${z.id}">${esc(projOf(z)||"")} · ${esc(z.opis||z.rodzaj||"")} · ${fDs(z.data)}</option>`).join("")}</select></td>
+        <td></td><td class="mono">${esc(r.pz)}<br><span class="small">${fD(r.data)}</span></td><td>${esc(r.uwagi)||'<span class="small">(puste uwagi)</span>'}</td><td></td><td class="num">${r.netto==null?"—":zl2(r.netto)+" zł"}</td><td><span class="pill p-warn">nie dopasowano</span></td><td></td></tr>`; }).join("")
+    + `<tr class="tot"><td colspan="4">Razem ${esc(miesNazwa(V_.ym))}</td><td class="num">${zl2(V_.sumApp)} zł</td><td class="num">${zl2(V_.sumPlik)} zł</td><td colspan="2">${V_.cnt("brak")?`<button class="btn sm primary" type="button" id="vAll">Wpisz wszystkie brakujące (${V_.cnt("brak")})</button>`:""}</td></tr>`;
+  if(!V_.all.length && !V_.niedop.length) $("vRows").innerHTML=`<tr><td colspan="8" class="small">W tym miesiącu nie ma przyjęć od podwykonawców ani odebranych zleceń.</td></tr>`;
+  if(zapisz) setDoc(doc(db,C.u,"weryfikacje"),{["m_"+V_.ym]:{czas:serverTimestamp(),kto:me.nazwa||me.login,plik:VER.plik}},{merge:true}).catch(x=>console.warn(x));
+}
+async function verSet(ids){
+  const L=VER.res.all.filter(x=>ids.includes(x.z.id) && x.plik!=null);
+  try{
+    const b=writeBatch(db);
+    L.forEach(x=>b.set(doc(db,C.v,x.z.id),{wartosc:x.plik,pz:x.pz.map(r=>r.pz),zrodlo:"weryfikacja",zmieniono:serverTimestamp(),zmienil:me.uid,zmienilNazwa:me.nazwa||me.login},{merge:true}));
+    await b.commit(); toast(L.length===1?"Wpisano kwotę z pliku":`Wpisano ${L.length} kwot z pliku`);
+  }catch(x){ failed(x); }
+}
+async function verXlsx(){
+  try{
+    await loadXlsx(); const X=window.XLSX, V_=VER.res; if(!V_) return;
+    const aoa=[["Weryfikacja kosztów – "+miesNazwa(V_.ym)],["Plik",VER.plik],["Data",fD(today())],[],["Nr / projekt","Podwykonawca","Element / opis","Odebrano","Przyjęcia PZ","Uwagi z pliku","W aplikacji [zł]","W pliku netto [zł]","Wynik"]];
+    const r0=aoa.length;
+    V_.all.forEach(x=>aoa.push([projOf(x.z),supName(x.z.podw),x.z.opis||"",fD(x.z.odebrano),x.pz.map(r=>r.pz).join(", "),x.pz.map(r=>r.uwagi).join("; "),x.app??"",x.plik??"",VST[x.st][1]]));
+    V_.niedop.forEach(({r,sup})=>aoa.push(["",supName(sup),"","",r.pz,r.uwagi,"",r.netto??"","nie dopasowano"]));
+    aoa.push(["Razem","","","","","",V_.sumApp,V_.sumPlik,""]);
+    const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:16},{wch:16},{wch:26},{wch:11},{wch:22},{wch:30},{wch:14},{wch:14},{wch:18}];
+    for(let r=r0;r<aoa.length;r++) [6,7].forEach(c=>{ const cell=ws[X.utils.encode_cell({r,c})]; if(cell&&cell.t==="n") cell.z='#,##0.00 "zł"'; });
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Weryfikacja");
+    saveBlob(`weryfikacja-${V_.ym}.xlsx`, new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}));
+  }catch(x){ failed(x); }
+}
+$("vInput").addEventListener("change",e=>{ const f=e.target.files[0]; if(f) readVerFile(f); e.target.value=""; });
+$("vMonth").addEventListener("change",e=>{ VER.ym=e.target.value; renderVer(true); });
+$("vXlsx").onclick=verXlsx;
+$("vRows").addEventListener("click",e=>{ const b=e.target.closest("[data-vset]"); if(b){ verSet([b.dataset.vset]); return; } if(e.target.id==="vAll") verSet(VER.res.all.filter(x=>x.st==="brak").map(x=>x.z.id)); });
+$("vRows").addEventListener("change",e=>{ const s=e.target.closest("[data-vman]"); if(!s) return; if(s.value) VER.manual[s.dataset.vman]=s.value; else delete VER.manual[s.dataset.vman]; renderVer(false); });
+
+/* ---------- przypomnienia na Pulpicie (administrator i Zakupowiec) ---------- */
+// miesiąc do weryfikacji: bieżący w 3 ostatnie dni robocze, potem poprzedni – aż ktoś go zweryfikuje
+function verMonth(){
+  const t=today(), d=pd(t); const last=new Date(d.getFullYear(),d.getMonth()+1,0); let wd=0, cut="";
+  while(wd<3){ if(last.getDay()%6!==0){ wd++; cut=iso(last); } last.setDate(last.getDate()-1); }
+  return t>=cut ? t.slice(0,7) : iso(new Date(d.getFullYear(),d.getMonth()-1,1)).slice(0,7);
+}
+const snoozed = k => { try{ return localStorage.getItem("koop_odloz_"+k)===today(); }catch{ return false; } };
+const snooze = k => { try{ localStorage.setItem("koop_odloz_"+k,today()); }catch{} };
+let zNoAmt=false;
+const bezKwoty = () => { const lim=addD(today(),-30); return Z.filter(z=>z.status==="Odebrane" && z.odebrano && z.odebrano<=lim && kw(z.id)==null); };
+function renderAlerts(){
+  const box=$("pAlerts"); if(!box) return;
+  if(!canSeeAmounts()){ box.innerHTML=""; return; }
+  const h=[], bk=bezKwoty().sort((a,b)=>a.odebrano.localeCompare(b.odebrano));
+  if(bk.length && !snoozed("kwoty")){ const z=bk[0], n=bk.length;
+    h.push(`<div class="pal bad"><span class="ic">!</span><div><b>${n} ${plural(n,"zlecenie","zlecenia","zleceń")} bez kwoty od ponad miesiąca</b><span class="small">Najstarsze: ${esc(supName(z.podw))} · ${esc(projOf(z))} ${esc(z.opis||"")}, odebrane ${fD(z.odebrano)} (${dniMiedzy(z.odebrano,today())} dni temu)</span></div>
+      <div class="acts"><button class="btn sm" type="button" data-alert="kwoty">Pokaż zlecenia</button><button class="btn sm ghost" type="button" data-odloz="kwoty">Przypomnij jutro</button></div></div>`); }
+  const ym=verMonth();
+  if(Z.length && !WER["m_"+ym] && !snoozed("plik"+ym)){
+    const last=Object.entries(WER).filter(([k])=>k.startsWith("m_")).sort().pop();
+    h.push(`<div class="pal warn"><span class="ic">i</span><div><b>${ym===today().slice(0,7)?"Koniec miesiąca":"Zaległa weryfikacja"} – pobierz plik przyjęć z magazynu za ${esc(miesNazwa(ym).toLowerCase())}</b><span class="small">${last?"Ostatnia weryfikacja: "+esc(miesNazwa(last[0].slice(2)).toLowerCase())+".":"Jeszcze nie było weryfikacji."} Wgraj eksport przyjęć, a aplikacja sprawdzi, czy kwoty są wpisane i zgodne.</span></div>
+      <div class="acts"><button class="btn sm primary" type="button" data-alert="wer">Weryfikuj</button><button class="btn sm ghost" type="button" data-odloz="plik${ym}">Przypomnij jutro</button></div></div>`); }
+  box.innerHTML=h.join("");
+}
+$("pAlerts").addEventListener("click",e=>{
+  const o=e.target.closest("[data-odloz]"); if(o){ snooze(o.dataset.odloz); renderAlerts(); return; }
+  const a=e.target.closest("[data-alert]"); if(!a) return;
+  if(a.dataset.alert==="kwoty"){ zNoAmt=true; zClosed=true; $("zClosed").checked=true; setTab("zlecenia"); renderZ(); }
+  else setTab("weryfikacja");
+});
+
+/* ---------- wydruk tygodnia (logistyka, bez kwot) ---------- */
+function printWeek(){
+  const end=addD(wkStart,6), dni=[0,1,2,3,4].map(i=>addD(wkStart,i));
+  const list=Z.filter(z=>z.status!=="Anulowane" && z.data>=wkStart && z.data<=end && (!wkSup||z.podw===wkSup) && (wkShow==="all"||!closed(z))).sort(byDate);
+  const it=z=>{ const we=z.data>dni[4]? (pd(z.data).getDay()===6?"Sob: ":"Nd: ") : "";
+    return `<div class="pp-it"><b><span class="pp-box"></span>${esc(we+supName(z.podw))}</b><span>${esc([projOf(z),z.opis].filter(Boolean).join(" · "))}</span><small>${esc([z.ilosc!=null&&z.ilosc!==""?z.ilosc+" szt.":"",z.rodzaj].filter(Boolean).join(" · "))}${z.status==="Gotowe do odbioru"?" · gotowe do odbioru":""}${z.status==="Odebrane"?" · odebrane":""}</small>${z.uwagi?`<i>${esc(z.uwagi)}</i>`:""}</div>`; };
+  const cols=dni.map((d,i)=>{ const L=list.filter(z=> i===4? z.data>=d : z.data===d); return `<div><h4>${DNI_K[pd(d).getDay()].replace(/^./,c=>c.toUpperCase())} ${fDs(d)}</h4>${L.map(it).join("")||'<div class="pp-it"><small>brak odbiorów</small></div>'}</div>`; }).join("");
+  $("printArea").innerHTML=`<div class="pp"><div class="pp-h"><div><b>Odbiory z kooperacji · tydzień ${isoWeek(wkStart)}</b><span>${fDs(wkStart)} – ${fD(dni[4])} · ${wkSup?esc(supName(wkSup)):"wszyscy podwykonawcy"} · ${list.length} ${plural(list.length,"odbiór","odbiory","odbiorów")}</span></div><div class="pp-m">Wydrukował: ${esc(me.nazwa||me.login)}<br>${fD(today())}</div></div><div class="pp-g">${cols}</div><div class="pp-f">Kooperacje · plan odbiorów</div></div>`;
+  window.print();
+}
+$("wkPrint").onclick=printWeek;
 
 function renderSup(){
   $("sRows").innerHTML=sortedP().map(p=>`<tr class="${isAdmin?"click":""}" data-s="${p.id}"><td class="strong"><span class="sw" style="background:var(--c${p.kolor??7})"></span>${esc(p.nazwa)}</td><td>${esc(p.dzial)}</td>
@@ -873,7 +1369,7 @@ $("wkToday").onclick=()=>{wkStart=monday(today()); renderWeek();};
 $("wkSup").onchange=e=>{wkSup=e.target.value; renderWeek();}; $("wkShow").onchange=e=>{wkShow=e.target.value; renderWeek();};
 $("zSup").onchange=e=>{zSup=e.target.value; renderZ();}; $("zStatus").onchange=e=>{zStatus=e.target.value; renderZ();};
 $("zQ").oninput=e=>{zQ=e.target.value; renderZ();}; $("zClosed").onchange=e=>{zClosed=e.target.checked; renderZ();};
-$("btnCsv").onclick=exportCsv;
+$("btnCsv").onclick=exportCsv; $("zNoAmtX").onclick=()=>{ zNoAmt=false; renderZ(); };
 
 /* ---------- zapis zlecenia: wersja + historia w jednej transakcji ---------- */
 function diff(cur, next){
@@ -915,6 +1411,7 @@ function openZ(id, preset){
   const rs=[...new Set([...rodzaje, v.rodzaj].filter(Boolean))];
   $("z_rodzaj").innerHTML=`<option value="">—</option>`+rs.map(r=>`<option>${esc(r)}</option>`).join("");
   $("z_status").innerHTML=STATUSY.map(s=>`<option>${s}</option>`).join("");
+  $("projList").innerHTML=[...new Set(Z.map(z=>(z.nr||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pl")).map(n=>`<option value="${esc(n)}">`).join("");
   fillZ(v);
   $("zDel").hidden=!z||!isAdmin; $("zDelAsk").hidden=true; $("zErr").hidden=true; $("zConflict").hidden=true;
   $("zWartoscWrap").hidden=!canSeeAmounts();
@@ -952,6 +1449,8 @@ $("fZ").addEventListener("submit", async e=>{
     (canSeeAmounts() && amountRaw!=="" && (!Number.isFinite(amount)||amount<0))? "Wpisz prawidłową, nieujemną wartość zamówienia." : "";
   if(err){ $("zErr").textContent=err; $("zErr").hidden=false; return; }
   if(d.status==="Odebrane" && !d.odebrano) d.odebrano=today();
+  const proj=await resolveProject(d); if(proj===null) return;
+  d.projekt=proj;
   $("zSave").disabled=true;
   try{
     const r=await saveZ(zId, d, zWersja, forceNext);
@@ -965,7 +1464,7 @@ $("fZ").addEventListener("submit", async e=>{
       if(stara!==nowa){
         const valueRef=doc(db,C.v,zid);
         if(nowa===null) await deleteDoc(valueRef);
-        else await setDoc(valueRef,{wartosc:nowa, zmieniono:serverTimestamp(), zmienil:me.uid, zmienilNazwa:me.nazwa||me.login});
+        else await setDoc(valueRef,{wartosc:nowa, zrodlo:"recznie", zmieniono:serverTimestamp(), zmienil:me.uid, zmienilNazwa:me.nazwa||me.login},{merge:true});
         kwotaZmieniona=true;
       }
     }
@@ -1044,14 +1543,18 @@ $("btnSeed").onclick=async()=>{
 };
 
 /* ---------- eksport CSV (Excel, średnik, polskie znaki) ---------- */
-function exportCsv(){
-  const head=["Data odbioru","Dzień","Tydz.","Podwykonawca","Nr zlecenia","Element / opis","Rodzaj","Ilość [szt]",...(canSeeAmounts()?["Wartość zamówienia [zł]"]:[]),"Status","Odebrano dnia","Alert","Uwagi","Dodał","Dodano","Ostatnio zmienił","Zmieniono"];
-  const q=v=>{ const s=String(v??""); return /[;"\n\r]/.test(s)? '"'+s.replace(/"/g,'""')+'"' : s; };
-  const rows=Z.slice().sort(byDate).map(z=>[fD(z.data), z.data?DNI_K[pd(z.data).getDay()]:"", z.data?isoWeek(z.data):"", supName(z.podw), z.nr, z.opis, z.rodzaj, z.ilosc??"",...(canSeeAmounts()?[V[z.id]?.wartosc??""]:[]), z.status, fD(z.odebrano), alertOf(z)?.[0]||"", z.uwagi, z.utworzylNazwa, fTs(z.utworzono), z.zmienilNazwa, fTs(z.zmieniono)]);
-  const csv="﻿"+[head,...rows].map(r=>r.map(q).join(";")).join("\r\n");
-  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
-  a.download=`kooperacje-${today()}.csv`; document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},1000);
-  toast(`Wyeksportowano ${rows.length} zleceń`);
+async function exportCsv(){
+  try{
+    await loadXlsx(); const X=window.XLSX, kwoty=canSeeAmounts();
+    const head=["Data odbioru","Dzień","Tydz.","Podwykonawca","Nr / projekt","Element / opis","Rodzaj","Ilość [szt]",...(kwoty?["Wartość [zł]"]:[]),"Status","Odebrano dnia","Alert","Uwagi","Dodał","Dodano","Ostatnio zmienił","Zmieniono"];
+    const rows=Z.slice().sort(byDate).map(z=>[fD(z.data), z.data?DNI_K[pd(z.data).getDay()]:"", z.data?isoWeek(z.data):"", supName(z.podw), projOf(z), z.opis||"", z.rodzaj||"", z.ilosc??"",...(kwoty?[kw(z.id)??""]:[]), z.status, fD(z.odebrano), alertOf(z)?.[0]||"", z.uwagi||"", z.utworzylNazwa||"", fTs(z.utworzono), z.zmienilNazwa||"", fTs(z.zmieniono)]);
+    const ws=X.utils.aoa_to_sheet([head,...rows]);
+    ws["!cols"]=head.map(h=>({wch:/opis|Uwagi/.test(h)?30:h.length<8?8:16}));
+    if(kwoty) for(let r=1;r<=rows.length;r++){ const c=ws[X.utils.encode_cell({r,c:8})]; if(c&&c.t==="n") c.z='#,##0.00 "zł"'; }
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Zlecenia");
+    saveBlob(`kooperacje-${today()}.xlsx`, new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}));
+    toast("Pobrano listę zleceń w Excelu");
+  }catch(x){ failed(x); }
 }
 
 /* ---------- komunikaty ---------- */
@@ -1087,7 +1590,9 @@ function startData(){
   subs.push(onSnapshot(collection(db,C.z), s=>{ Z=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
   subs.push(onSnapshot(collection(db,C.p), s=>{ P=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
   V={};
-  if(canSeeAmounts()) subs.push(onSnapshot(collection(db,C.v), s=>{ V=Object.fromEntries(s.docs.map(d=>[d.id,d.data()])); renderZ(); renderRaporty(); if(zId && $("dlgZ").open) $("z_wartosc").value=V[zId]?.wartosc??""; }, lost));
+  if(canSeeAmounts()) subs.push(onSnapshot(collection(db,C.v), s=>{ V=Object.fromEntries(s.docs.map(d=>[d.id,d.data()])); renderZ(); renderRaporty(); renderAlerts(); if(VER.rows.length) renderVer(false); if(zId && $("dlgZ").open) $("z_wartosc").value=V[zId]?.wartosc??""; }, lost));
+  WER={};
+  if(canSeeAmounts()) subs.push(onSnapshot(doc(db,C.u,"weryfikacje"), s=>{ WER=s.exists()? s.data() : {}; renderAlerts(); if(tab==="weryfikacja") renderVer(false); }, x=>console.warn(x)));
   subs.push(onSnapshot(doc(db,C.u,"slowniki"), s=>{ if(s.exists() && Array.isArray(s.data().rodzaje)) rodzaje=s.data().rodzaje.slice(); render(); }, lost));
 }
 
