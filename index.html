@@ -32,7 +32,7 @@
 html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
 [hidden]{display:none!important}
-.wrap{max-width:1320px;margin:0 auto;padding-block:18px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+.wrap{max-width:1480px;margin:0 auto;padding-block:18px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
 header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
 h1{font-family:var(--f-display);font-weight:700;font-size:27px;letter-spacing:.01em;margin:0;text-wrap:balance}
 h2{font-family:var(--f-display);font-weight:600;font-size:17px;margin:0;letter-spacing:.01em}
@@ -75,6 +75,11 @@ tbody tr.click:hover td{background:var(--sunk)}
 tr.late td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
 tr.closed td{color:var(--muted)}
 .wide{min-width:960px}
+.zt{min-width:0}
+.zt td{overflow-wrap:break-word}
+td.uw{min-width:140px;max-width:260px;overflow-wrap:anywhere}
+.qb{display:flex;flex-wrap:nowrap;gap:4px;justify-content:flex-end;white-space:nowrap}
+@media (max-width:1100px){.zt{min-width:1000px}}
 .mono{font-family:var(--f-mono);font-size:12.5px}
 .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .small{font-size:12.5px;color:var(--muted)}
@@ -295,7 +300,7 @@ label input,label select,label textarea{width:100%}
     <div class="cols">
       <div class="panel">
         <div class="hd"><h2>Najbliższe odbiory</h2><span class="small">otwarte zlecenia, najpierw zaległe</span></div>
-        <div class="tablebox"><table><thead><tr><th>Data</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Status</th><th>Alert</th></tr></thead><tbody id="pNext"></tbody></table></div>
+        <div class="tablebox"><table><thead><tr><th>Data</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Status</th><th>Alert</th><th>Uwagi</th><th></th></tr></thead><tbody id="pNext"></tbody></table></div>
         <div class="empty" id="pNextEmpty" hidden></div>
       </div>
       <div class="stack">
@@ -339,7 +344,7 @@ label input,label select,label textarea{width:100%}
         <select id="wkShow" aria-label="Pokaż"><option value="open">Otwarte</option><option value="all">Wszystkie</option></select>
       </div>
     </div>
-    <div class="tablebox"><table class="wide"><thead><tr><th>Dzień</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość</th><th>Status</th><th>Uwagi</th></tr></thead><tbody id="wkRows"></tbody></table></div>
+    <div class="tablebox"><table class="wide"><thead><tr><th>Dzień</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość</th><th class="num" id="thWkWartosc" hidden>Wartość</th><th>Status</th><th>Uwagi</th><th></th></tr></thead><tbody id="wkRows"></tbody></table></div>
     <div class="empty" id="wkEmpty" hidden></div>
     <div class="mail" id="wkMail"></div>
   </section>
@@ -356,7 +361,7 @@ label input,label select,label textarea{width:100%}
         <button class="btn sm" type="button" id="btnCsv">Eksportuj do Excela (CSV)</button>
       </div>
     </div>
-    <div class="tablebox"><table class="wide"><thead><tr><th>Data odbioru</th><th>Dzień</th><th>Tydz.</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość [szt]</th><th id="thWartosc" hidden>Wartość zamówienia</th><th>Status</th><th>Odebrano dnia</th><th>Alert</th><th>Uwagi</th><th>Ostatnia zmiana</th><th></th></tr></thead><tbody id="zRows"></tbody></table></div>
+    <div class="tablebox"><table class="zt"><thead><tr><th>Data odbioru</th><th>Podwykonawca</th><th>Nr zlecenia</th><th>Element / opis</th><th>Rodzaj</th><th class="num">Ilość</th><th class="num" id="thWartosc" hidden>Wartość</th><th>Status</th><th>Alert</th><th>Uwagi</th><th>Ostatnia zmiana</th><th></th></tr></thead><tbody id="zRows"></tbody></table></div>
     <div class="empty" id="zEmpty" hidden></div>
   </section>
 
@@ -633,7 +638,7 @@ function renderPulpit(){
   const next=open.slice().sort(byDate).slice(0,20);
   $("pNext").innerHTML=next.map(z=>{const a=alertOf(z); return `<tr class="click ${a&&a[1]==="alert-late"?"late":""}" data-z="${z.id}">
     <td class="mono">${fD(z.data)}</td><td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td>
-    <td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${pill(z.status)}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td></tr>`;}).join("");
+    <td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${pill(z.status)}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td><td class="small uw">${esc(z.uwagi)}</td><td>${quickBtns(z)}</td></tr>`;}).join("");
   const more=open.length-next.length, pe=$("pNextEmpty");
   if(!open.length){ pe.hidden=false; pe.innerHTML=`<strong>Brak otwartych zleceń</strong><span>Dodaj zlecenie przyciskiem „Nowe zlecenie” albo kliknij dzień w kalendarzu.</span>`; }
   else if(more>0){ pe.hidden=false; pe.innerHTML=`<span>… i jeszcze ${more} – pełna lista w zakładce Zlecenia</span>`; }
@@ -717,12 +722,13 @@ function renderWeek(){
   const list=Z.filter(z=>z.data>=wkStart && z.data<=end && (!wkSup||z.podw===wkSup) && (wkShow==="all" || !closed(z))).sort(byDate);
   let h="", cur="";
   for(const z of list){
-    if(z.data!==cur){ cur=z.data; h+=`<tr class="dayhead"><td colspan="8">${DNI[pd(cur).getDay()]} ${fD(cur)}</td></tr>`; }
+    if(z.data!==cur){ cur=z.data; h+=`<tr class="dayhead"><td colspan="${canSeeAmounts()?10:9}">${DNI[pd(cur).getDay()]} ${fD(cur)}</td></tr>`; }
     const a=alertOf(z);
     h+=`<tr class="click ${a&&a[1]==="alert-late"?"late":""} ${closed(z)?"closed":""}" data-z="${z.id}"><td class="small">${DNI_K[pd(z.data).getDay()]}</td>
       <td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td>
-      <td class="num">${z.ilosc??""}</td>${canSeeAmounts()?`<td class="num">${moneyText(V[z.id]?.wartosc)}</td>`:""}<td>${pill(z.status)}</td><td class="small">${esc(z.uwagi)}</td></tr>`;
+      <td class="num">${z.ilosc??""}</td>${canSeeAmounts()?`<td class="num">${moneyText(V[z.id]?.wartosc)}</td>`:""}<td>${pill(z.status)}</td><td class="small uw">${esc(z.uwagi)}</td><td>${quickBtns(z)}</td></tr>`;
   }
+  $("thWkWartosc").hidden=!canSeeAmounts();
   $("wkRows").innerHTML=h;
   const e=$("wkEmpty"); e.hidden=!!list.length; e.innerHTML=`<span>Brak ${wkShow==="open"?"otwartych ":""}odbiorów w tym tygodniu.</span>`;
   const p=wkSup? sup(wkSup):null;
@@ -753,11 +759,11 @@ function renderZ(){
   const list=Z.filter(z=>(!zSup||z.podw===zSup) && (!zStatus||z.status===zStatus) && (zClosed||zStatus||!closed(z)) &&
     (!q||[z.nr,z.opis,z.uwagi,z.rodzaj].join(" ").toLowerCase().includes(q))).sort(byDate);
   $("zRows").innerHTML=list.map(z=>{const a=alertOf(z); return `<tr class="click ${a&&a[1]==="alert-late"?"late":""} ${closed(z)?"closed":""}" data-z="${z.id}">
-    <td class="mono">${fD(z.data)}</td><td class="small">${z.data?DNI_K[pd(z.data).getDay()]:""}</td><td class="mono">${z.data?isoWeek(z.data):""}</td>
+    <td style="white-space:nowrap"><span class="mono">${fD(z.data)}</span>${z.data?`<br><span class="small">${DNI_K[pd(z.data).getDay()]} · tydz. ${isoWeek(z.data)}</span>`:""}</td>
     <td style="white-space:nowrap"><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td>
-    <td class="num">${z.ilosc??""}</td>${canSeeAmounts()?`<td class="num">${moneyText(V[z.id]?.wartosc)}</td>`:""}<td>${pill(z.status)}</td><td class="mono">${fD(z.odebrano)}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td><td class="small">${esc(z.uwagi)}</td>
+    <td class="num">${z.ilosc??""}</td>${canSeeAmounts()?`<td class="num">${moneyText(V[z.id]?.wartosc)}</td>`:""}<td>${pill(z.status)}${z.odebrano?`<br><span class="small">odebr. ${fDs(z.odebrano)}</span>`:""}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td><td class="small uw">${esc(z.uwagi)}</td>
     <td class="small" style="white-space:nowrap">${esc(z.zmienilNazwa||"")}<br>${fTs(z.zmieniono)}</td>
-    <td>${canWrite&&!closed(z)?`<button class="btn sm" type="button" data-odb="${z.id}">Odebrane</button>`:""}</td></tr>`;}).join("");
+    <td>${quickBtns(z)}</td></tr>`;}).join("");
   const e=$("zEmpty"); e.hidden=!!list.length;
   e.innerHTML = Z.length? `<span>Żadne zlecenie nie pasuje do filtrów.</span>` : `<strong>Brak zleceń</strong><span>Dodaj pierwsze zlecenie przyciskiem „Nowe zlecenie”.</span>`;
 }
@@ -841,6 +847,7 @@ function renderSup(){
 /* ---------- akcje ---------- */
 document.addEventListener("click", e=>{
   const odb=e.target.closest("[data-odb]"); if (odb){ e.stopPropagation(); markOdebrane(odb.dataset.odb); return; }
+  const got=e.target.closest("[data-gotowe]"); if (got){ e.stopPropagation(); markStatus(got.dataset.gotowe,"Gotowe do odbioru"); return; }
   const add=e.target.closest("[data-add]"); if (add){ if(canWrite) openZ(null,{data:add.dataset.add, podw:calSup}); return; }
   const ev=e.target.closest("[data-z]"); if (ev){ openZ(ev.dataset.z); return; }
   const day=e.target.closest(".day[data-day]"); if(day && narrow()){ calSel=day.dataset.day; if(calSel.slice(0,7)!==calMonth) calMonth=calSel.slice(0,7); renderCal(); return; }
@@ -877,7 +884,7 @@ async function saveZ(id, data, expectedWersja, force){
     if (id && !cur) return {gone:true};
     if (cur && !force && (cur.wersja||0)!==(expectedWersja||0)) return {conflict:cur};
     const zmiany = diff(cur, data);
-    if (cur && !Object.keys(zmiany).length) return {nochange:true};
+    if (cur && !Object.keys(zmiany).length) return {nochange:true, id:ref.id};
     const kto = {zmieniono:serverTimestamp(), zmienil:me.uid, zmienilNazwa:me.nazwa||me.login};
     if (cur) tx.update(ref, {...data, ...kto, wersja:(cur.wersja||0)+1});
     else tx.set(ref, {...data, ...kto, utworzono:serverTimestamp(), utworzyl:me.uid, utworzylNazwa:me.nazwa||me.login, wersja:1});
@@ -946,12 +953,18 @@ $("fZ").addEventListener("submit", async e=>{
     forceNext=false;
     if(r.conflict){ showConflict(r.conflict); return; }
     if(r.gone){ $("zErr").textContent="To zlecenie zostało w międzyczasie usunięte."; $("zErr").hidden=false; return; }
-    if(canSeeAmounts()){
-      const valueRef=doc(db,C.v,r.id);
-      if(amount===null) await deleteDoc(valueRef);
-      else await setDoc(valueRef,{wartosc:Math.round(amount*100)/100, zmieniono:serverTimestamp(), zmienil:me.uid, zmienilNazwa:me.nazwa||me.login});
+    let kwotaZmieniona=false;
+    const zid=r.id||zId;
+    if(canSeeAmounts() && zid){
+      const stara=V[zid]?.wartosc ?? null, nowa=amount===null?null:Math.round(amount*100)/100;
+      if(stara!==nowa){
+        const valueRef=doc(db,C.v,zid);
+        if(nowa===null) await deleteDoc(valueRef);
+        else await setDoc(valueRef,{wartosc:nowa, zmieniono:serverTimestamp(), zmienil:me.uid, zmienilNazwa:me.nazwa||me.login});
+        kwotaZmieniona=true;
+      }
     }
-    toast(r.nochange? "Bez zmian" : r.nowy? "Dodano zlecenie" : "Zapisano zmiany");
+    toast(r.nowy? "Dodano zlecenie" : !r.nochange? "Zapisano zmiany" : kwotaZmieniona? "Zapisano wartość zamówienia" : "Bez zmian");
     $("dlgZ").close();
   }catch(x){ failed(x); }
   finally{ $("zSave").disabled=false; }
@@ -973,12 +986,18 @@ $("zDelYes").onclick=async()=>{
     toast("Usunięto zlecenie (kopia zostaje w koszu w bazie)"); $("dlgZ").close();
   }catch(x){ failed(x); }
 };
-async function markOdebrane(id){
+async function markStatus(id, status){
   const z=Z.find(x=>x.id===id); if(!z) return;
-  const d={}; for(const k of POLA) d[k]=z[k]??(k==="ilosc"?null:""); d.status="Odebrane"; d.odebrano=today();
+  const d={}; for(const k of POLA) d[k]=z[k]??(k==="ilosc"?null:""); d.status=status; if(status==="Odebrane") d.odebrano=today();
   try{ const r=await saveZ(id,d,z.wersja||0,false);
     if(r.conflict){ toast("Ktoś właśnie zmienił to zlecenie – otwórz je i sprawdź"); return; }
-    toast("Oznaczono jako odebrane"); }catch(x){ failed(x); }
+    toast(status==="Odebrane"?"Oznaczono jako odebrane":"Oznaczono: gotowe do odbioru"); }catch(x){ failed(x); }
+}
+const markOdebrane = id => markStatus(id,"Odebrane");
+// przyciski szybkiej zmiany statusu w wierszu
+function quickBtns(z){
+  if(!canWrite || closed(z)) return "";
+  return `<span class="qb">${z.status!=="Gotowe do odbioru"?`<button class="btn sm" type="button" data-gotowe="${z.id}" title="Oznacz: gotowe do odbioru">Gotowe</button>`:""}<button class="btn sm" type="button" data-odb="${z.id}" title="Oznacz jako odebrane">Odebrane</button></span>`;
 }
 
 /* ---------- podwykonawcy / rodzaje (administrator) ---------- */
