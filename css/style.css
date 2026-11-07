@@ -295,3 +295,10 @@ header.top .sub,header.top .who{color:rgba(255,255,255,.82)}
 header.top .who b{color:#fff}
 .btn.primary{background:var(--sys-akcja);border-color:var(--sys-akcja);color:var(--sys-akcja-fg)}
 .btn.primary:hover{background:var(--sys-akcja-hover);border-color:var(--sys-akcja-hover)}
+
+/* Podpis: aplikacja jest częścią systemu SteelFlow; logo autora (dwuteownik + M.K.) */
+.sf-podpis{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:4px 12px;font-size:12px;letter-spacing:.02em;color:var(--muted);text-align:center}
+.sf-podpis b{color:var(--fg);font-weight:700}
+.sf-mk{display:inline-flex;align-items:center;gap:4px}
+.sf-mk svg{width:11px!important;height:13px!important;overflow:visible;fill:#c99a00;flex:none}
+@media (prefers-color-scheme:dark){.sf-mk svg{fill:#f2b705}}
