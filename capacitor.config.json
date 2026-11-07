@@ -1,0 +1,12 @@
+{
+  "appId": "pl.kooperacje.odbiory",
+  "appName": "Kooperacje",
+  "webDir": "apk-www",
+  "server": {
+    "url": "https://mateo170271824.github.io/Kooperacje/",
+    "errorPath": "offline.html"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
