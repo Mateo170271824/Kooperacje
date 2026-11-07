@@ -1,0 +1,14 @@
+# dane firmowe nie trafiają do repozytorium (repo jest publiczne – także dane podwykonawców: wczytuj je plikiem, nie dodawaj do repo)
+*.xlsx
+*.xlsm
+*.xls
+*.csv
+*.pdf
+node_modules/
+*.json
+!package.json
+!manifest.webmanifest
+!tests/e2e/firebase.json
+*-debug.log
+!package-lock.json
+!capacitor.config.json
