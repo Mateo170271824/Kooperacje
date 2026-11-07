@@ -279,3 +279,19 @@ tr.rsub table{background:var(--surface);border:1px solid var(--line)}
   .pp-box{display:inline-block;width:9px;height:9px;border:1.2px solid #15202b;border-radius:2px;margin-right:5px;vertical-align:-1px}
   .pp-f{color:#78848f;font-size:8.5px;margin-top:6px}
 }
+
+
+/* ===== Wspólne barwy systemu (karta kolorów „Wspólne barwy systemu – Logistyka i Zakupy”, Canva, 11.2026) =====
+   Wspólne dla wszystkich aplikacji: tło, tekst, linie, statusy, pomarańczowe przyciski akcji.
+   Kolor modułu (ta aplikacja): pasek nagłówka. Truck App #1F3864 · Kooperacje #1F5F7A · Zapytania #366092 · Kombajn #2F4A6D */
+:root{ --sys-granat:#1f3864; --sys-akcja:#e08a3c; --sys-akcja-hover:#c9742a; --sys-akcja-fg:#ffffff; --modul:#1f5f7a; }
+@media (prefers-color-scheme: light){:root{
+  --bg:#f2f3f1; --surface:#ffffff; --line:#d2d6cf; --fg:#1b2028; --muted:#5b6270; --ok:#2e7a3b; --warn:#946000; --bad:#b0332a; }}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){ --bg:#12161b; --surface:#1a2028; --fg:#e3e8ee; }}
+:root[data-theme="dark"]{ --bg:#12161b; --surface:#1a2028; --fg:#e3e8ee; }
+header.top{background:var(--modul);color:#fff;padding:14px 18px;border-radius:12px}
+header.top h1{color:#fff}
+header.top .sub,header.top .who{color:rgba(255,255,255,.82)}
+header.top .who b{color:#fff}
+.btn.primary{background:var(--sys-akcja);border-color:var(--sys-akcja);color:var(--sys-akcja-fg)}
+.btn.primary:hover{background:var(--sys-akcja-hover);border-color:var(--sys-akcja-hover)}
