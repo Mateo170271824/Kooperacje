@@ -22,6 +22,8 @@ export const POLA = ["data","podw","nr","projekt","opis","rodzaj","ilosc","statu
 export const POLA_NAZWY = {data:"data odbioru",podw:"podwykonawca",nr:"nr zlecenia / projekt",projekt:"projekt",opis:"opis",rodzaj:"rodzaj",ilosc:"ilość",status:"status",odebrano:"odebrano dnia",uwagi:"uwagi",doLog:"do logistyki"};
 export const closed = z => z.status==="Odebrane" || z.status==="Anulowane";
 export const projOf = z => String(z.projekt||z.nr||"").trim();
+// kod projektu do wspólnego słownika (Truck App, Kooperacje, Zapytania, Kombajn): wielkie litery, pojedyncze spacje
+export const kodProjektu = s => String(s||"").trim().toUpperCase().replace(/\s+/g," ");
 // alert terminu odbioru; t – dzisiejsza data
 export function alertOf(z, t=today()){
   if (closed(z) || !z.data) return null;

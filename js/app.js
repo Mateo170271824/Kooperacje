@@ -3,7 +3,7 @@ import { getAuth, connectAuthEmulator, signInWithEmailAndPassword, onAuthStateCh
 import { getFirestore, connectFirestoreEmulator, collection, doc, onSnapshot, runTransaction, serverTimestamp, getDoc, getDocs, query, where, orderBy, limit, writeBatch, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { normLogin, iso, today, pd, addD, monday, isoWeek, fD, fDs, dniMiedzy, esc, plural, STATUSY, POLA, POLA_NAZWY, closed, projOf, alertOf as alertDnia, diff,
-  normTxt, cellDate, cellNum, nrInText, matchSup as matchSupL, kursZamkniety, nowyKurs as nowyKursL, zmianyKursu as zmianyKursuL, rodzajZmianyKursu, kursStan as kursStanL, podwykonawcyZArkusza } from "./logika.js?v=1";
+  normTxt, cellDate, cellNum, nrInText, kodProjektu, matchSup as matchSupL, kursZamkniety, nowyKurs as nowyKursL, zmianyKursu as zmianyKursuL, rodzajZmianyKursu, kursStan as kursStanL, podwykonawcyZArkusza } from "./logika.js?v=1";
 
 /* ===== Firebase – ten sam projekt co Truck App ===== */
 const firebaseConfig = {
@@ -33,6 +33,7 @@ const MIES = ["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","
 const MIES_D = ["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"];
 const MIES_K = ["sty","lut","mar","kwi","maj","cze","lip","sie","wrz","paź","lis","gru"];
 
+let PROJ = [];   // wspólny słownik projektów (kolekcja projekty)
 let Z = [], P = [], V = {}, KR = {}, rodzaje = RODZAJE_DOMYSLNE.slice();
 let rodzajeZapisane = true;
 let me = null;               // {uid, login, nazwa, admin}
@@ -783,6 +784,13 @@ $("zQ").oninput=e=>{zQ=e.target.value; renderZ();}; $("zClosed").onchange=e=>{zC
 $("btnCsv").onclick=exportCsv; $("zNoAmtX").onclick=()=>{ zNoAmt=false; renderZ(); };
 
 /* ---------- zapis zlecenia: wersja + historia w jednej transakcji ---------- */
+// wspólny słownik projektów: kod wielkimi literami, do 40 znaków, bez „/” (id dokumentu)
+function dopiszProjekt(kod){
+  const k=kodProjektu(kod);
+  if(!k || k.length>40 || k.includes("/") || PROJ.some(p=>p.kod===k)) return;
+  PROJ.push({kod:k});
+  setDoc(doc(db,"projekty",k), {kod:k, zrodla:{koop:true}, utworzono:serverTimestamp(), utworzyl:me.login||""}, {merge:true}).catch(x=>console.warn(x));
+}
 // kurs w Truck App – logika w logika.js
 const ja = () => ({login:me.login, nazwa:me.nazwa});
 const nowyKurs = (zid, d) => nowyKursL(zid, d, sup(d.podw), ja(), serverTimestamp());
@@ -848,7 +856,9 @@ function openZ(id, preset){
   const rs=[...new Set([...rodzaje, v.rodzaj].filter(Boolean))];
   $("z_rodzaj").innerHTML=`<option value="">—</option>`+rs.map(r=>`<option>${esc(r)}</option>`).join("");
   $("z_status").innerHTML=STATUSY.map(s=>`<option>${s}</option>`).join("");
-  $("projList").innerHTML=[...new Set(Z.map(z=>(z.nr||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"pl")).map(n=>`<option value="${esc(n)}">`).join("");
+  // podpowiedzi: numery z Kooperacji + wspólny słownik projektów (Truck App, Zapytania, Kombajn)
+  const opisProj=new Map(PROJ.map(p=>[p.kod,[p.nazwa,p.klient].filter(Boolean).join(" · ")]));
+  $("projList").innerHTML=[...new Set([...Z.map(z=>(z.nr||"").trim()).filter(Boolean), ...PROJ.map(p=>p.kod)])].sort((a,b)=>a.localeCompare(b,"pl")).map(n=>`<option value="${esc(n)}">${esc(opisProj.get(n)||"")}</option>`).join("");
   fillZ(v);
   $("zDel").hidden=!z||!isAdmin; $("zDelAsk").hidden=true; $("zErr").hidden=true; $("zConflict").hidden=true;
   $("zWartoscWrap").hidden=!canSeeAmounts();
@@ -891,6 +901,7 @@ $("fZ").addEventListener("submit", async e=>{
   $("zSave").disabled=true;
   try{
     const r=await saveZ(zId, d, zWersja, forceNext);
+    if(r.ok) dopiszProjekt(projOf(d));   // nowy kod trafia do wspólnego słownika projektów
     forceNext=false;
     if(r.conflict){ showConflict(r.conflict); return; }
     if(r.gone){ $("zErr").textContent="To zlecenie zostało w międzyczasie usunięte."; $("zErr").hidden=false; return; }
@@ -1081,6 +1092,8 @@ function startData(){
   const lost=x=>{ console.warn(x); note(x&&x.code==="permission-denied"? "Baza odmawia dostępu do Kooperacji. Administrator musi dodać reguły Kooperacji w Firebase (instrukcja, krok 1)." : "Utracono połączenie z bazą. Odśwież stronę.", true); };
   subs.push(onSnapshot(collection(db,C.z), s=>{ Z=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
   subs.push(onSnapshot(collection(db,C.p), s=>{ P=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
+  PROJ=[];
+  subs.push(onSnapshot(collection(db,"projekty"), s=>{ PROJ=s.docs.map(d=>d.data()); }, x=>console.warn(x)));
   KR={};
   subs.push(onSnapshot(query(collection(db,"kursy"), where("zrodlo","==","KOOP")), s=>{ KR=Object.fromEntries(s.docs.map(d=>[d.id,d.data()])); renderZ(); if(zId && $("dlgZ").open) pokazKurs(Z.find(x=>x.id===zId)); }, x=>console.warn(x)));
   V={};

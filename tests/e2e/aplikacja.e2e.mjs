@@ -85,6 +85,8 @@ try {
   ok("koszty kursu", (await dok("koszty", k.id))?.dataS === "2030-01-10");
   ok("zlecenie zna swój kurs", (await dok("koop_zlecenia", k.koopId)).kursId === k.id);
   await p.waitForTimeout(800);
+  ok("projekt LECM we wspólnym słowniku", (await dok("projekty", "LECM"))?.zrodla?.koop === true, JSON.stringify(await dok("projekty", "LECM")));
+  await p.waitForTimeout(800);
   ok("lista: „czeka na kierowcę”", /czeka na kierowcę/.test(await wiersz(p, "Kątownik L50").textContent()));
   // logistyka przypisuje kierowcę
   await baza(db => updateDoc(doc(db, "kursy", k.id), { nasz: "Marek Testowy", auto: "AB 12345", status: "W realizacji", doUzup: false, uwagi: "od logistyki" }));
