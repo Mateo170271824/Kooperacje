@@ -81,6 +81,13 @@ service cloud.firestore {
     }
 
     // Obecność: każdy zgłasza tylko siebie, widzi ją tylko administrator
+    // Truck App: które nowe dostawy od zakupów dana osoba z biura już widziała (wspólne dla jej telefonu i komputera)
+    match /widziane/{uid} {
+      allow read: if biuro() && request.auth.uid == uid;
+      allow write: if biuro() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['zakupy', 'czas'])
+        && request.resource.data.zakupy is list && request.resource.data.zakupy.size() <= 300;
+    }
     match /obecnosc/{uid} {
       allow read: if admin();
       allow write: if aktywny() && request.auth.uid == uid
@@ -176,6 +183,21 @@ service cloud.firestore {
 
     // Koszty trzymane osobno – kierowca ich nie widzi.
     match /koszty/{id} {
+      allow read, write: if biuro();
+    }
+    // Wspólny słownik projektów (kod projektu jak BUDC, LECM – id dokumentu = kod wielkimi literami) dla wszystkich aplikacji.
+    // Czyta i dopisuje biuro (Truck App, Kooperacje, Zapytania, Kombajn); usuwa tylko administrator.
+    match /projekty/{kod} {
+      allow read: if biuro();
+      allow create, update: if biuro()
+        && request.resource.data.keys().hasOnly(['kod', 'nazwa', 'klient', 'zrodla', 'utworzono', 'utworzyl', 'zmieniono', 'zmienil'])
+        && request.resource.data.kod == kod && kod.size() <= 40
+        && (!('nazwa' in request.resource.data) || request.resource.data.nazwa.size() <= 120)
+        && (!('klient' in request.resource.data) || request.resource.data.klient.size() <= 120);
+      allow delete: if admin();
+    }
+    // Kosz Truck App: usunięte kursy (kurs + koszty) do przywrócenia przez 90 dni – tylko biuro.
+    match /kursy_kosz/{id} {
       allow read, write: if biuro();
     }
     // Dane wrażliwe (nr dowodu itp.) – tylko biuro; kasowane po dostarczeniu, a po terminie (usunPo) przez aplikację biura i codzienne zadanie kopii.

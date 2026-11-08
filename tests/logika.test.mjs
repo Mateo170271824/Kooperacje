@@ -114,3 +114,9 @@ test("podwykonawcy z arkusza Excel", () => {
   assert.equal(L1[1].tel2, "600 000 003"); assert.equal(L1[1].tel, "600 000 002");
   assert.throws(() => L.podwykonawcyZArkusza([["Coś"], ["Inne"]]), /Nazwa/);
 });
+
+test("kod projektu do wspólnego słownika", () => {
+  assert.equal(L.kodProjektu("  lecm "), "LECM");
+  assert.equal(L.kodProjektu("jadj1240-26a"), "JADJ1240-26A");
+  assert.equal(L.kodProjektu("hala   lipa"), "HALA LIPA");
+});
