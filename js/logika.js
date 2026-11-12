@@ -58,6 +58,50 @@ export function matchSup(dost, P){
   return "";
 }
 
+/* ---------- dopasowanie przyjęć PZ do zleceń ----------
+   rows: [{i,pz,data,dost,netto,uwagi}], Z: zlecenia, P: podwykonawcy, manual: {nr wiersza: id zlecenia}, znane: znane kody projektów.
+   Zasady:
+   - przyjęcie od podwykonawcy trafia tylko do zleceń TEGO podwykonawcy z jego kodem (nr / projekt) w uwagach,
+   - jedno przyjęcie = jedno zlecenie: najpierw pary o najbliższej dacie (odbiór ↔ przyjęcie), każde zlecenie dostaje co najwyżej jedno PZ;
+     nadmiarowe PZ czekają na ręczne przypisanie (nie są doliczane do innych zleceń projektu),
+   - przyjęcie od innego dostawcy z kodem projektu w uwagach (np. „Blacha JANR1220-26B”) = inny koszt (materiał) projektu. */
+export const KOD_HALI = /\b[A-Z]{4}\d{3,4}-\d{2}[A-Z]?\b/gi;
+export function kodyWTekscie(txt, znane=[]){
+  const T=" "+normTxt(txt)+" ", out=[], byl=new Set();
+  const dodaj=k=>{ const n=normTxt(k); if(n.length>=3 && !byl.has(n)){ byl.add(n); out.push(kodProjektu(k)); } };
+  for(const m of String(txt||"").matchAll(KOD_HALI)) dodaj(m[0]);
+  [...znane].sort((a,b)=>String(b).length-String(a).length).forEach(k=>{ const n=normTxt(k); if(n.length>=3 && T.includes(" "+n+" ")) dodaj(k); });
+  return out;
+}
+// rodzaj materiału z uwag: tekst przed kodem („Blacha JANR1220-26B” → „Blacha”)
+export function rodzajZUwag(uwagi, kod){
+  const u=String(uwagi||"").trim(), i=u.toUpperCase().indexOf(String(kod||"").toUpperCase());
+  let t=(i>0? u.slice(0,i) : u.split(/\s+/)[0]||"").replace(/[\s,;:–-]+$/,"").trim();
+  return t? t.charAt(0).toUpperCase()+t.slice(1).toLowerCase() : "Materiał";
+}
+const kodPasuje = (z, txt) => nrInText(z.nr, txt) || (!!z.projekt && nrInText(z.projekt, txt));
+export function dopasujPZ(rows, Z, P, manual={}, znane=[]){
+  const zl=Z.filter(z=>z.status!=="Anulowane");
+  const przyp=new Map(), niedop=[], inne=[], pominiete=[], uzyte=new Set(), zajete=new Set();
+  const dodaj=(z,r)=>{ if(!przyp.has(z.id)) przyp.set(z.id,[]); przyp.get(z.id).push(r); uzyte.add(r.i); zajete.add(z.id); };
+  const odl=(r,z)=>Math.abs(dniMiedzy(r.data, z.odebrano||z.data) ?? 999);
+  const sup=new Map(rows.map(r=>[r.i, matchSup(r.dost,P)]));
+  for(const r of rows){ const z=manual[r.i] && zl.find(x=>x.id===manual[r.i]); if(z) dodaj(z,r); }
+  const pary=[];
+  for(const r of rows){ if(uzyte.has(r.i) || !sup.get(r.i)) continue;
+    zl.filter(z=>z.podw===sup.get(r.i) && kodPasuje(z,r.uwagi)).forEach(z=>pary.push({r,z,d:odl(r,z)})); }
+  pary.sort((a,b)=>a.d-b.d || String(a.r.pz).localeCompare(String(b.r.pz)));
+  for(const {r,z} of pary){ if(uzyte.has(r.i) || zajete.has(z.id)) continue; dodaj(z,r); }
+  for(const r of rows){ if(uzyte.has(r.i)) continue;
+    if(sup.get(r.i)){ niedop.push({r, sup:sup.get(r.i)}); continue; }
+    const kody=kodyWTekscie(r.uwagi, znane);
+    if(kody.length) inne.push({r, projekt:kody[0], rodzaj:rodzajZUwag(r.uwagi, kody[0])}); else pominiete.push(r);
+  }
+  return {przyp, niedop, inne, pominiete};
+}
+// id dokumentu innego kosztu: z numeru PZ („PZ 132/M01/10/2026” → „PZ-132-M01-10-2026”)
+export const idKosztu = pz => normTxt(pz).replace(/ /g,"-").slice(0,120) || "PZ";
+
 /* ---------- kurs w Truck App (logistyka) ----------
    Zlecenie z zaznaczonym „wyślij do logistyki” = kurs w kolekcji kursy (+ koszty), jak dostawa dodana przez zakupy w Truck App:
    transport nasz, bez kierowcy, doUzup → biuro logistyki dostaje okienko „do uzupełnienia” i przypisuje kierowcę i auto.
@@ -69,14 +113,17 @@ export const opisLadunku = d => [d.rodzaj, d.opis].filter(Boolean).join(" – ")
 export const uwagiKursu = d => ["Odbiór od podwykonawcy (Kooperacje).", d.uwagi].filter(Boolean).join(" ");
 const iloscTxt = d => d.ilosc!=null&&d.ilosc!==""? d.ilosc+" szt.":"";
 // nowy kurs; p – podwykonawca, ja – {login, nazwa}, ts – znacznik czasu serwera
-export function nowyKurs(zid, d, p, ja, ts, czas=Date.now()){
+// dom – domyślny kierowca i auto do odbiorów z kooperacji (ustawienia Truck App: {kier, auto, tel, kierUid})
+export const kierTekst = dom => !dom||!dom.kier? "" : dom.kier+(dom.tel?", tel. "+dom.tel:"")+(dom.auto?" | "+dom.auto:"");
+export function nowyKurs(zid, d, p, ja, ts, czas=Date.now(), dom=null){
   p=p||{};
   const k={ typ:"D", rodzaj:"Odbiór – kooperacja", nr:d.nr||d.projekt||"KOOP", proj:projOf(d), kontr:p.nazwa||"", transport:"Skavska",
     zal:d.data, dst:"", miejsce:p.adres||"", kontakt:p.tel||"", status:"Oczekuje na kierowcę", uwagi:uwagiKursu(d),
     ladunek:{ opis:opisLadunku(d), ilosc:iloscTxt(d), opak:"", wagaKg:null, obj:null, cechy:"" },
     zrodlo:"KOOP", doUzup:true, odZakupow:{ kto:ja.login||"", nazwa:ja.nazwa||ja.login||"", czas } };
   const kurs={}; for(const f of POLA_KURSU) kurs[f]=k[f] ?? (KURS_TABLICE.includes(f)? [] : f==="hlTydzien"||f==="doUzup"? false : KURS_NULL.includes(f)? null : "");
-  return { ...kurs, kierUid:"", koopId:zid, dataS:d.data, zmieniono:ts, zmienil:ja.login||"" };
+  if(dom && dom.kier){ Object.assign(kurs, { nasz:dom.kier, auto:dom.auto||"", kier:kierTekst(dom), doUzup:false }); }
+  return { ...kurs, kierUid:(dom&&dom.kier&&dom.kierUid)||"", koopId:zid, dataS:d.data, awizoZbedne:!!p.bezAwizacji, zmieniono:ts, zmienil:ja.login||"" };
 }
 // zmiany w istniejącym kursie wynikające ze zmian zlecenia (null = nic do zmiany)
 export function zmianyKursu(k, d, zmiany, p, ja, ts, dzis=today()){
@@ -86,7 +133,7 @@ export function zmianyKursu(k, d, zmiany, p, ja, ts, dzis=today()){
   else {
     if(k.status==="Anulowane"){ Object.assign(u,{ status:"Oczekuje na kierowcę", doUzup:true, zal:d.data, dataS:d.data }); }
     if(zmiany.data && !kursZamkniety(k)){ u.zal=d.data; u.dataS=d.data; if(k.dst && k.dst<d.data) u.dst=""; }   // dataS w Truck App = data załadunku
-    if(zmiany.podw){ p=p||{}; Object.assign(u,{ kontr:p.nazwa||"", miejsce:p.adres||"", kontakt:p.tel||"" }); }
+    if(zmiany.podw){ p=p||{}; Object.assign(u,{ kontr:p.nazwa||"", miejsce:p.adres||"", kontakt:p.tel||"", awizoZbedne:!!p.bezAwizacji }); }
     if(zmiany.nr||zmiany.projekt){ u.nr=d.nr||d.projekt||"KOOP"; u.proj=projOf(d); }
     if(zmiany.opis||zmiany.rodzaj||zmiany.ilosc) u.ladunek={ ...(k.ladunek||{}), opis:opisLadunku(d), ilosc:iloscTxt(d) };
   }
