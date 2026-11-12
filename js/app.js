@@ -1,28 +1,17 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, connectAuthEmulator, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, connectFirestoreEmulator, collection, doc, onSnapshot, runTransaction, serverTimestamp, getDoc, getDocs, query, where, orderBy, limit, writeBatch, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import * as FA from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import * as FF from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, doc, onSnapshot, runTransaction, serverTimestamp, getDoc, getDocs, query, where, orderBy, limit, writeBatch, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { normLogin, iso, today, pd, addD, monday, isoWeek, fD, fDs, dniMiedzy, esc, plural, STATUSY, POLA, POLA_NAZWY, closed, projOf, alertOf as alertDnia, diff,
   normTxt, cellDate, cellNum, nrInText, kodProjektu, matchSup as matchSupL, kursZamkniety, nowyKurs as nowyKursL, zmianyKursu as zmianyKursuL, rodzajZmianyKursu, kursStan as kursStanL, podwykonawcyZArkusza, dopasujPZ, idKosztu } from "./logika.js?v=2";
 
-/* ===== Firebase – ten sam projekt co Truck App ===== */
-const firebaseConfig = {
-  apiKey: "AIzaSyB8Zi3CTsEJDqnxpt2EpmEN0JKbQZkx9Ik",
-  authDomain: "logistyka-app-41d7a.firebaseapp.com",
-  projectId: "logistyka-app-41d7a",
-  storageBucket: "logistyka-app-41d7a.firebasestorage.app",
-  messagingSenderId: "730726420764",
-  appId: "1:730726420764:web:fbd4a12acd2b5ebdb52ad9"
-};
-const fbApp = initializeApp(firebaseConfig);
-const auth = getAuth(fbApp);
-const db = getFirestore(fbApp);
-// adres ?emu na localhost łączy z lokalnym emulatorem bazy (testy ekranowe, tests/e2e)
-if (new URLSearchParams(location.search).has("emu") && ["localhost","127.0.0.1"].includes(location.hostname)) {
-  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings:true }); connectFirestoreEmulator(db, "127.0.0.1", 8085);
-}
-// Login → konto Firebase dokładnie tak jak w Truck App
-const loginEmail = t => normLogin(t) + "@konta." + firebaseConfig.authDomain;
+/* ===== Firebase – ten sam projekt co Truck App; konfiguracja, login i tryb emulatora (?emu na localhost)
+   ze wspólnego modułu SteelFlow (js/steelflow-konto.js, kopia z repo Logistyka) ===== */
+import { polacz, zaloguj, komunikat, dostepBiura } from "./steelflow-konto.js?v=2";
+const SDK = { initializeApp, auth: FA, firestore: FF };
+const { auth, db } = polacz(SDK, { emuPort: 8085 });
 
 const C = { z:"koop_zlecenia", p:"koop_podwykonawcy", u:"koop_ustawienia", kosz:"koop_kosz", v:"koop_wartosci", k:"koop_koszty" };
 const $ = id => document.getElementById(id);
@@ -1137,13 +1126,8 @@ $("fLogin").addEventListener("submit", async e=>{
   const l=$("lLogin").value, p=$("lPass").value;
   if(!normLogin(l)||!p){ $("lErr").textContent="Wpisz login i hasło."; $("lErr").hidden=false; return; }
   $("lBtn").disabled=true; $("lErr").hidden=true;
-  try{ await signInWithEmailAndPassword(auth, loginEmail(l), p); }
-  catch(x){
-    const c=x&&x.code;
-    $("lErr").textContent = (c==="auth/invalid-credential"||c==="auth/wrong-password"||c==="auth/user-not-found"||c==="auth/invalid-email")? "Zły login lub hasło."
-      : c==="auth/too-many-requests"? "Za dużo prób. Odczekaj chwilę i spróbuj ponownie."
-      : c==="auth/network-request-failed"? "Brak połączenia z internetem." : "Nie udało się zalogować ("+(c||x)+").";
-    $("lErr").hidden=false;
+  try{ await zaloguj(SDK, auth, l, p); }
+  catch(x){ $("lErr").textContent = komunikat(x); $("lErr").hidden=false;
   } finally { $("lBtn").disabled=false; }
 });
 const doOut=()=>signOut(auth);
@@ -1181,13 +1165,10 @@ onAuthStateChanged(auth, u=>{
   // decyzja o dostępie, gdy znamy i konto, i administratora
   const decide=()=>{
     if(!metaOk || !userOk) return;
-    const k=konto;
-    if(!k) return deny("To konto nie ma dostępu do aplikacji.");
-    if(k.rola!=="biuro") return deny("Kooperacje są dostępne tylko dla kont biura.");
-    if(k.aktywny===false) return deny("To konto jest zablokowane w Truck App.");
-    isAdmin = adminUid===u.uid;
+    const k=konto, d=dostepBiura(u.uid, k, adminUid, "kooperacje");   // wspólna reguła SteelFlow
+    if(!d.ok) return deny(k && k.rola==="biuro" && k.aktywny!==false ? "To konto nie ma dostępu do Kooperacji. Dostęp nadaje administrator w zakładce Dostęp." : d.powod);
+    isAdmin = d.admin;
     isBuyer = k.koopZakupowiec===true;
-    if(k.kooperacje===false && !isAdmin) return deny("To konto nie ma dostępu do Kooperacji. Dostęp nadaje administrator w zakładce Dostęp.");
     me={uid:u.uid, login:k.login||"", nazwa:k.nazwa||k.login||""};
     canWrite=true;
     show("app");
