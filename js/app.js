@@ -3,7 +3,7 @@ import { getAuth, connectAuthEmulator, signInWithEmailAndPassword, onAuthStateCh
 import { getFirestore, connectFirestoreEmulator, collection, doc, onSnapshot, runTransaction, serverTimestamp, getDoc, getDocs, query, where, orderBy, limit, writeBatch, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import { normLogin, iso, today, pd, addD, monday, isoWeek, fD, fDs, dniMiedzy, esc, plural, STATUSY, POLA, POLA_NAZWY, closed, projOf, alertOf as alertDnia, diff,
-  normTxt, cellDate, cellNum, nrInText, kodProjektu, matchSup as matchSupL, kursZamkniety, nowyKurs as nowyKursL, zmianyKursu as zmianyKursuL, rodzajZmianyKursu, kursStan as kursStanL, podwykonawcyZArkusza } from "./logika.js?v=1";
+  normTxt, cellDate, cellNum, nrInText, kodProjektu, matchSup as matchSupL, kursZamkniety, nowyKurs as nowyKursL, zmianyKursu as zmianyKursuL, rodzajZmianyKursu, kursStan as kursStanL, podwykonawcyZArkusza, dopasujPZ, idKosztu } from "./logika.js?v=2";
 
 /* ===== Firebase – ten sam projekt co Truck App ===== */
 const firebaseConfig = {
@@ -24,7 +24,7 @@ if (new URLSearchParams(location.search).has("emu") && ["localhost","127.0.0.1"]
 // Login → konto Firebase dokładnie tak jak w Truck App
 const loginEmail = t => normLogin(t) + "@konta." + firebaseConfig.authDomain;
 
-const C = { z:"koop_zlecenia", p:"koop_podwykonawcy", u:"koop_ustawienia", kosz:"koop_kosz", v:"koop_wartosci" };
+const C = { z:"koop_zlecenia", p:"koop_podwykonawcy", u:"koop_ustawienia", kosz:"koop_kosz", v:"koop_wartosci", k:"koop_koszty" };
 const $ = id => document.getElementById(id);
 const RODZAJE_DOMYSLNE = ["Rynny","Kątowniki","Ceowniki","Uszka mobilne","Elementy zimnogięte","Blachy i obróbki","Bramy","Inne"];
 const DNI = ["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
@@ -34,7 +34,8 @@ const MIES_D = ["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca",
 const MIES_K = ["sty","lut","mar","kwi","maj","cze","lip","sie","wrz","paź","lis","gru"];
 
 let PROJ = [];   // wspólny słownik projektów (kolekcja projekty)
-let Z = [], P = [], V = {}, KR = {}, rodzaje = RODZAJE_DOMYSLNE.slice();
+let Z = [], P = [], V = {}, KR = {}, KO = {}, rodzaje = RODZAJE_DOMYSLNE.slice();
+let KD = null;   // domyślny kierowca i auto do odbiorów z kooperacji (Truck App: ustawienia/glowne.koopOdbior)
 let rodzajeZapisane = true;
 let me = null;               // {uid, login, nazwa, admin}
 let subs = [];
@@ -454,26 +455,45 @@ function renderRaporty(){
       r.orders.map(z=>`<tr class="click" data-z="${z.id}"><td class="mono">${fD(z.data)}</td><td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(projOf(z))}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td><td>${pill(z.status)}</td><td class="num">${kw(z.id)==null?'<span class="small">brak kwoty</span>':zl2(kw(z.id))+" zł"}</td></tr>`).join("")}</tbody></table></td></tr>`;
     return h; }).join("") + `<tr class="tot"><td>Razem</td><td class="num">${D.orders.length}</td><td class="num">${D.valued}</td><td class="num">${zl2(D.total)} zł</td><td class="num">${D.total?"100%":"—"}</td><td></td></tr>`
     : `<tr><td colspan="6" class="small">Brak zleceń w wybranym okresie.</td></tr>`;
+  renderMat(D);
   renderProjekt();
 }
+// inne koszty (materiał) z weryfikacji, w okresie raportu, według projektu
+function matData(b){
+  const L=Object.values(KO).filter(k=>k.data && k.data>=b.start && k.data<=b.end);
+  const m=new Map(); L.forEach(k=>{ const key=kodProjektu(k.projekt)||"(bez projektu)"; const g=m.get(key)||{projekt:key,n:0,sum:0,rodzaje:new Set(),L:[]}; g.n++; g.sum=r2(g.sum+(k.netto||0)); g.rodzaje.add(k.rodzaj||""); g.L.push(k); m.set(key,g); });
+  const rows=[...m.values()].sort((a,c)=>c.sum-a.sum); return {rows,sum:r2(rows.reduce((a,g)=>a+g.sum,0)),n:L.length};
+}
+function renderMat(D){
+  const M=matData(D.b); $("rMat").hidden=!M.n;
+  $("rTotalHint").textContent= M.n? `+ inne koszty (materiał) ${zl2(M.sum)} zł = ${zl2(r2(D.total+M.sum))} zł` : "zlecenia w wybranym okresie";
+  if(!M.n) return;
+  $("rMatRows").innerHTML=M.rows.map(g=>`<tr><td><b>${esc(g.projekt)}</b></td><td>${esc([...g.rodzaje].filter(Boolean).join(", "))}</td><td class="num">${g.n}</td><td class="num">${zl2(g.sum)} zł</td></tr>`).join("")
+    +`<tr class="tot"><td colspan="2">Razem</td><td class="num">${M.n}</td><td class="num">${zl2(M.sum)} zł</td></tr>`;
+}
+const matProj = k => Object.values(KO).filter(x=>normTxt(x.projekt)===normTxt(k)).sort((a,b)=>(a.data||"").localeCompare(b.data||""));
 // zestawienie jednego projektu (wszystkie jego zlecenia, bez względu na okres)
 function projData(k){
   const L=Z.filter(z=>projOf(z)===k && z.status!=="Anulowane").sort((a,b)=>(tsIso(a.utworzono)||a.data||"").localeCompare(tsIso(b.utworzono)||b.data||""));
   const zam=L.map(z=>tsIso(z.utworzono)||z.data).filter(Boolean).sort(), odb=L.map(z=>z.odebrano).filter(Boolean).sort();
   const sum=r2(L.reduce((a,z)=>a+(kw(z.id)||0),0));
-  return {k,L,sum,first:zam[0]||"",last:odb.length?odb[odb.length-1]:"",odebrane:L.filter(z=>z.status==="Odebrane").length};
+  const mat=matProj(k), sumMat=r2(mat.reduce((a,x)=>a+(x.netto||0),0));
+  return {k,L,sum,mat,sumMat,razem:r2(sum+sumMat),first:zam[0]||"",last:odb.length?odb[odb.length-1]:"",odebrane:L.filter(z=>z.status==="Odebrane").length};
 }
 function renderProjekt(){
   const box=$("rProj"); if(!R.proj){ box.hidden=true; return; }
   const P_=projData(R.proj); if(!P_.L.length){ R.proj=""; box.hidden=true; return; }
   box.hidden=false;
   $("rpTitle").textContent="Projekt "+P_.k;
-  $("rpSum").textContent=zl2(P_.sum)+" zł"; $("rpCnt").textContent=P_.L.length; $("rpCntH").textContent=`${P_.odebrane} ${plural(P_.odebrane,"odebrane","odebrane","odebranych")}`;
+  $("rpSum").textContent=zl2(P_.sum)+" zł"; $("rpMat").textContent=zl2(P_.sumMat)+" zł"; $("rpMatH").textContent=P_.mat.length? `${P_.mat.length} ${plural(P_.mat.length,"pozycja","pozycje","pozycji")} · razem ${zl2(P_.razem)} zł` : "brak w zapisanych przyjęciach"; $("rpCnt").textContent=P_.L.length; $("rpCntH").textContent=`${P_.odebrane} ${plural(P_.odebrane,"odebrane","odebrane","odebranych")}`;
   const dni=dniMiedzy(P_.first,P_.last); $("rpDni").textContent=dni==null?"—":dni+" "+plural(dni,"dzień","dni","dni"); $("rpDniH").textContent=P_.first?`${fDs(P_.first)} – ${P_.last?fDs(P_.last):"w toku"}`:"";
   $("rpRows").innerHTML=P_.L.map(z=>{ const zm=tsIso(z.utworzono)||""; const d=dniMiedzy(zm,z.odebrano);
     return `<tr class="click" data-z="${z.id}"><td>${esc(z.opis||z.rodzaj||"zlecenie")}<br><span class="small">${esc(z.rodzaj)}</span></td><td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${fD(zm)}</td>
       <td>${z.odebrano?`<span class="mono">${fD(z.odebrano)}</span>`:`<span class="pill st-Gotowe">odbiór ${fDs(z.data)}</span>`}</td><td class="num">${d==null?"–":d}</td><td class="num">${kw(z.id)==null?'<span class="small">brak kwoty</span>':zl2(kw(z.id))+" zł"}</td></tr>`; }).join("")
-    + `<tr class="tot"><td colspan="5">Razem ${esc(P_.k)}</td><td class="num">${zl2(P_.sum)} zł</td></tr>`;
+    + `<tr class="tot"><td colspan="5">Razem kooperacja ${esc(P_.k)}</td><td class="num">${zl2(P_.sum)} zł</td></tr>`;
+  $("rpMatBox").hidden=!P_.mat.length;
+  $("rpMatRows").innerHTML=P_.mat.map(x=>`<tr><td>${esc(x.rodzaj||"")}<br><span class="small">${esc(x.uwagi||"")}</span></td><td>${esc(x.dost||"")}</td><td class="mono">${esc(x.pz)}</td><td class="mono">${fD(x.data)}</td><td class="num">${zl2(x.netto)} zł</td></tr>`).join("")
+    + `<tr class="tot"><td colspan="4">Razem materiał · kooperacja + materiał = ${zl2(P_.razem)} zł</td><td class="num">${zl2(P_.sumMat)} zł</td></tr>`;
 }
 async function rXlsx(){
   try{
@@ -491,6 +511,10 @@ async function rXlsx(){
     const ws2=X.utils.aoa_to_sheet(lista); ws2["!cols"]=[{wch:12},{wch:16},{wch:16},{wch:30},{wch:16},{wch:7},{wch:16},{wch:12},{wch:12},{wch:13},{wch:30}];
     for(let r=1;r<lista.length;r++){ const c=ws2[X.utils.encode_cell({r,c:9})]; if(c&&c.t==="n") c.z='#,##0.00 "zł"'; }
     const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Raport"); X.utils.book_append_sheet(wb,ws2,"Zlecenia");
+    const M=matData(D.b);
+    if(M.n){ const am=[["Projekt","Rodzaj","PZ","Data","Dostawca","Uwagi","Netto [zł]"]]; M.rows.forEach(g=>g.L.forEach(k=>am.push([g.projekt,k.rodzaj||"",k.pz,fD(k.data),k.dost||"",k.uwagi||"",k.netto??""]))); am.push(["Razem","","","","","",M.sum]);
+      const wm=X.utils.aoa_to_sheet(am); wm["!cols"]=[{wch:16},{wch:14},{wch:20},{wch:11},{wch:24},{wch:30},{wch:13}];
+      for(let r=1;r<am.length;r++){ const c=wm[X.utils.encode_cell({r,c:6})]; if(c&&c.t==="n") c.z='#,##0.00 "zł"'; } X.utils.book_append_sheet(wb,wm,"Inne koszty"); }
     saveBlob(`raport-kooperacje-${safeName(D.b.label)}.xlsx`, new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}));
     toast("Pobrano raport w Excelu");
   }catch(x){ failed(x); }
@@ -508,7 +532,12 @@ async function rPdf(){
     d.autoTable({head,body,foot:[[{content:"Razem",styles:{halign:"left"}},...(zProj?[""]:[]),D.orders.length,D.valued,zl2(D.total),D.total?"100%":"—"]],startY:y,styles:tStyle,headStyles:hStyle,footStyles:{...fStyle,halign:"right"},
       columnStyles:cs,alternateRowStyles:{fillColor:[243,247,252]},margin:{left:14,right:14,bottom:16},showFoot:"lastPage"});
     y=d.lastAutoTable.finalY+6;
-    pdfPie(d,y,pieParts(D.rows),"Udział w wartości",[["Zlecenia z kwotą",`${D.valued} z ${D.orders.length}`],["Średnio na zlecenie",D.valued?zl2(D.total/D.valued)+" zł":"—"],["Razem",zl2(D.total)+" zł"]]);
+    y=pdfPie(d,y,pieParts(D.rows),"Udział w wartości",[["Zlecenia z kwotą",`${D.valued} z ${D.orders.length}`],["Średnio na zlecenie",D.valued?zl2(D.total/D.valued)+" zł":"—"],["Razem",zl2(D.total)+" zł"]]);
+    const M=matData(D.b);
+    if(M.n){ d.setFont("DV","bold"); d.setFontSize(10); d.setTextColor(...PDF_BLUE); d.text("Inne koszty (materiał) według projektu",14,y+2);
+      d.autoTable({head:[["Projekt","Rodzaje","Pozycji","Netto [zł]"]],body:M.rows.map(g=>[g.projekt,[...g.rodzaje].filter(Boolean).join(", "),g.n,zl2(g.sum)]),
+        foot:[[{content:"Razem materiał · kooperacja + materiał = "+zl2(r2(D.total+M.sum))+" zł",colSpan:2,styles:{halign:"left"}},M.n,zl2(M.sum)]],startY:y+5,styles:tStyle,headStyles:hStyle,footStyles:{...fStyle,halign:"right"},
+        columnStyles:{2:{halign:"right"},3:{halign:"right"}},alternateRowStyles:{fillColor:[243,247,252]},margin:{left:14,right:14,bottom:16},showFoot:"lastPage"}); }
     pdfFooter(d,"Kooperacje · wydruk "+nowStamp());
     saveBlob(`raport-kooperacje-${safeName(D.b.label)}.pdf`, d.output("blob"));
   }catch(x){ failed(x); }
@@ -519,7 +548,9 @@ async function projXlsx(){
     const aoa=[["Zestawienie projektu "+P_.k],["Zlecenia",P_.L.length],["Wartość",P_.sum],["Data",fD(today())],[],["Element / opis","Rodzaj","Podwykonawca","Zamówiono","Termin odbioru","Odebrano","Dni","Wartość [zł]"]];
     const r0=aoa.length;
     P_.L.forEach(z=>{ const zm=tsIso(z.utworzono); aoa.push([z.opis||"",z.rodzaj||"",supName(z.podw),fD(zm),fD(z.data),fD(z.odebrano),dniMiedzy(zm,z.odebrano)??"",kw(z.id)??""]); });
-    aoa.push(["Razem","","","","","","",P_.sum]);
+    aoa.push(["Razem kooperacja","","","","","","",P_.sum]);
+    if(P_.mat.length){ aoa.push([],["Inne koszty (materiał)","Dostawca","PZ","Data","","","","Netto [zł]"]); P_.mat.forEach(x=>aoa.push([(x.rodzaj||"")+" – "+(x.uwagi||""),x.dost||"",x.pz,fD(x.data),"","","",x.netto??""]));
+      aoa.push(["Razem materiał","","","","","","",P_.sumMat],["Razem projekt","","","","","","",P_.razem]); }
     const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:30},{wch:16},{wch:16},{wch:12},{wch:14},{wch:12},{wch:6},{wch:14}];
     for(let r=r0;r<aoa.length;r++){ const c=ws[X.utils.encode_cell({r,c:7})]; if(c&&c.t==="n") c.z='#,##0.00 "zł"'; }
     const c2=ws["B3"]; if(c2) c2.z='#,##0.00 "zł"';
@@ -537,7 +568,13 @@ async function projPdf(){
       columnStyles:{0:{cellWidth:50},5:{halign:"right"},6:{halign:"right"}},alternateRowStyles:{fillColor:[243,247,252]},margin:{left:14,right:14,bottom:16},showFoot:"lastPage"});
     y=d.lastAutoTable.finalY+6;
     const bySup=new Map(); P_.L.forEach(z=>{ if(kw(z.id)) bySup.set(supName(z.podw),(bySup.get(supName(z.podw))||0)+kw(z.id)); });
-    pdfPie(d,y,pieParts([...bySup].map(([name,sum])=>({name,sum}))),"Udział podwykonawców",[["Zlecenia odebrane",`${P_.odebrane} z ${P_.L.length}`],["Czas trwania",(()=>{const n=dniMiedzy(P_.first,P_.last);return n==null?"w toku":n+" "+plural(n,"dzień","dni","dni");})()],["Razem",zl2(P_.sum)+" zł"]]);
+    if(P_.mat.length){ d.setFont("DV","bold"); d.setFontSize(10); d.setTextColor(...PDF_BLUE); d.text("Inne koszty (materiał)",14,y+2);
+      d.autoTable({head:[["Materiał","Dostawca","PZ","Data","Netto [zł]"]],body:P_.mat.map(x=>[(x.rodzaj||"")+(x.uwagi?" – "+x.uwagi:""),x.dost||"",x.pz,fD(x.data),zl2(x.netto)]),
+        foot:[[{content:"Razem materiał",colSpan:4,styles:{halign:"left"}},zl2(P_.sumMat)]],startY:y+5,styles:tStyle,headStyles:hStyle,footStyles:{...fStyle,halign:"right"},
+        columnStyles:{0:{cellWidth:62},4:{halign:"right"}},alternateRowStyles:{fillColor:[243,247,252]},margin:{left:14,right:14,bottom:16},showFoot:"lastPage"});
+      y=d.lastAutoTable.finalY+6; }
+    if(P_.mat.length) bySup.set("Materiał",P_.sumMat);
+    pdfPie(d,y,pieParts([...bySup].map(([name,sum])=>({name,sum}))),"Udział w kosztach",[["Kooperacja",zl2(P_.sum)+" zł"],["Materiał",zl2(P_.sumMat)+" zł"],["Razem projekt",zl2(P_.razem)+" zł"]]);
     pdfFooter(d,"Kooperacje · wydruk "+nowStamp());
     saveBlob(`projekt-${safeName(P_.k)}.pdf`, d.output("blob"));
   }catch(x){ failed(x); }
@@ -613,28 +650,19 @@ async function readVerFile(file){
   }catch(x){ toast(x.message||String(x)); }
 }
 const matchSup = dost => matchSupL(dost, P);
+const znaneKody = () => [...new Set([...PROJ.map(p=>p.kod), ...Z.map(z=>z.nr), ...Z.map(z=>z.projekt)].filter(Boolean))];
 function computeVer(){
   const ym=VER.ym, rowsM=VER.rows.filter(r=>r.data.slice(0,7)===ym);
-  const byZ=new Map(), niedop=[]; let pominiete=0;
-  rowsM.forEach(r=>{
-    const sup=matchSup(r.dost);
-    let z=null;
-    if(VER.manual[r.i]) z=Z.find(x=>x.id===VER.manual[r.i])||null;
-    if(!z){ let c=Z.filter(x=>x.status!=="Anulowane" && (nrInText(x.nr,r.uwagi)||(x.projekt&&nrInText(x.projekt,r.uwagi))));
-      if(sup && c.some(x=>x.podw===sup)) c=c.filter(x=>x.podw===sup);
-      c.sort((a,b)=>Math.abs(dniMiedzy(r.data,a.odebrano||a.data)||999)-Math.abs(dniMiedzy(r.data,b.odebrano||b.data)||999));
-      z=c[0]||null; }
-    if(z){ const e=byZ.get(z.id)||{z,pz:[]}; e.pz.push(r); byZ.set(z.id,e); }
-    else if(sup) niedop.push({r,sup});
-    else pominiete++;
-  });
-  const wyn=[...byZ.values()].map(e=>{ const plik=e.pz.some(r=>r.netto!=null)? r2(e.pz.reduce((a,r)=>a+(r.netto||0),0)) : null, app=kw(e.z.id);
-    const st= plik==null? "nokw" : app==null? "brak" : Math.abs(app-plik)<0.005? "ok" : "roznica"; return {...e,plik,app,st}; });
-  const ids=new Set(byZ.keys());
+  const D=dopasujPZ(rowsM, Z, P, VER.manual, znaneKody());
+  const wyn=[...D.przyp].map(([zid,pz])=>{ const z=Z.find(x=>x.id===zid); const plik=pz.some(r=>r.netto!=null)? r2(pz.reduce((a,r)=>a+(r.netto||0),0)) : null, app=kw(zid);
+    const st= plik==null? "nokw" : app==null? "brak" : Math.abs(app-plik)<0.005? "ok" : "roznica"; return {z,pz,plik,app,st}; });
+  const ids=new Set(D.przyp.keys());
   const bezpz=Z.filter(z=>z.status==="Odebrane" && (z.odebrano||"").slice(0,7)===ym && !ids.has(z.id)).map(z=>({z,pz:[],plik:null,app:kw(z.id),st:"bezpz"}));
   const order={roznica:0,brak:1,bezpz:2,nokw:3,ok:4};
   const all=wyn.concat(bezpz).sort((a,b)=>order[a.st]-order[b.st]||byDate(a.z,b.z));
-  return {ym,rowsM,all,niedop,pominiete,cnt:k=>all.filter(x=>x.st===k).length,sumApp:r2(all.reduce((a,x)=>a+(x.app||0),0)),sumPlik:r2(all.reduce((a,x)=>a+(x.plik||0),0))};
+  const inne=D.inne.map(x=>{ const id=idKosztu(x.r.pz), zap=KO[id]; return {...x, id, zap, st: !zap? "nowe" : Math.abs((zap.netto||0)-(x.r.netto||0))<0.005 && normTxt(zap.projekt)===normTxt(x.projekt)? "zapisane" : "zmiana"}; });
+  return {ym,rowsM,all,niedop:D.niedop,inne,pominiete:D.pominiete.length,przypisane:rowsM.length-D.niedop.length-D.inne.length-D.pominiete.length,
+    cnt:k=>all.filter(x=>x.st===k).length,sumApp:r2(all.reduce((a,x)=>a+(x.app||0),0)),sumPlik:r2(all.reduce((a,x)=>a+(x.plik||0),0)),sumInne:r2(inne.reduce((a,x)=>a+(x.r.netto||0),0))};
 }
 const VST={ok:["p-ok","zgodne"],roznica:["p-warn","różnica"],brak:["p-bad","brak kwoty"],bezpz:["p-bad","bez przyjęcia PZ"],nokw:["p-idle","brak kwoty w pliku"]};
 function renderVer(zapisz){
@@ -645,7 +673,7 @@ function renderVer(zapisz){
   if(!has) return;
   $("vMonth").innerHTML=VER.months.map(m=>`<option value="${m}">${miesNazwa(m)}</option>`).join(""); $("vMonth").value=VER.ym;
   const V_=VER.res=computeVer();
-  $("vFile").innerHTML=`<b>${esc(VER.plik)}</b><span>${V_.rowsM.length} ${plural(V_.rowsM.length,"przyjęcie","przyjęcia","przyjęć")} w miesiącu ${esc(miesNazwa(V_.ym))} · ${V_.rowsM.length-V_.pominiete} dopasowanych do zleceń · ${V_.pominiete} od innych dostawców (pominięte)</span>`;
+  $("vFile").innerHTML=`<b>${esc(VER.plik)}</b><span>${V_.rowsM.length} ${plural(V_.rowsM.length,"przyjęcie","przyjęcia","przyjęć")} w miesiącu ${esc(miesNazwa(V_.ym))} · ${V_.przypisane} dopasowanych do zleceń · ${V_.niedop.length} od podwykonawców do przypisania · ${V_.inne.length} innych kosztów (materiał) · ${V_.pominiete} pominiętych</span>`;
   $("vOk").textContent=V_.cnt("ok"); $("vDiff").textContent=V_.cnt("roznica"); $("vBrak").textContent=V_.cnt("brak"); $("vBezpz").textContent=V_.cnt("bezpz");
   $("vTitle").textContent="Weryfikacja kosztów · "+miesNazwa(V_.ym);
   $("vRows").innerHTML=V_.all.map(x=>{ const z=x.z, [cl,lb]=VST[x.st];
@@ -659,8 +687,34 @@ function renderVer(zapisz){
         <td></td><td class="mono">${esc(r.pz)}<br><span class="small">${fD(r.data)}</span></td><td>${esc(r.uwagi)||'<span class="small">(puste uwagi)</span>'}</td><td></td><td class="num">${r.netto==null?"—":zl2(r.netto)+" zł"}</td><td><span class="pill p-warn">nie dopasowano</span></td><td></td></tr>`; }).join("")
     + `<tr class="tot"><td colspan="4">Razem ${esc(miesNazwa(V_.ym))}</td><td class="num">${zl2(V_.sumApp)} zł</td><td class="num">${zl2(V_.sumPlik)} zł</td><td colspan="2">${V_.cnt("brak")?`<button class="btn sm primary" type="button" id="vAll">Wpisz wszystkie brakujące (${V_.cnt("brak")})</button>`:""}</td></tr>`;
   if(!V_.all.length && !V_.niedop.length) $("vRows").innerHTML=`<tr><td colspan="8" class="small">W tym miesiącu nie ma przyjęć od podwykonawców ani odebranych zleceń.</td></tr>`;
+  renderInne(V_);
   if(zapisz) setDoc(doc(db,C.u,"weryfikacje"),{["m_"+V_.ym]:{czas:serverTimestamp(),kto:me.nazwa||me.login,plik:VER.plik}},{merge:true}).catch(x=>console.warn(x));
 }
+// inne koszty (materiał): przyjęcia od zwykłych dostawców z kodem projektu w uwagach, np. „Blacha JANR1220-26B”
+const IST={nowe:["p-warn","nowe"],zapisane:["p-ok","zapisane"],zmiana:["p-warn","inna kwota / projekt"]};
+function renderInne(V_){
+  const box=$("vInneBox"); box.hidden=!V_.inne.length; if(!V_.inne.length) return;
+  const nowe=V_.inne.filter(x=>x.st!=="zapisane");
+  $("vInneInfo").textContent=`${V_.inne.length} ${plural(V_.inne.length,"pozycja","pozycje","pozycji")} · ${zl2(V_.sumInne)} zł netto · ${nowe.length? nowe.length+" do zapisania" : "wszystkie zapisane"}`;
+  $("vInneRows").innerHTML=V_.inne.map(x=>{ const [cl,lb]=IST[x.st];
+    return `<tr><td><b class="mono">${esc(x.projekt)}</b><br><span class="small">${esc(x.rodzaj)}</span></td><td class="mono">${esc(x.r.pz)}<br><span class="small">${fD(x.r.data)}</span></td><td>${esc(x.r.dost)}</td><td>${esc(x.r.uwagi)}</td>
+      <td class="num">${x.r.netto==null?"—":zl2(x.r.netto)+" zł"}</td><td><span class="pill ${cl}">${lb}</span></td><td>${x.st!=="zapisane"?`<button class="btn sm" type="button" data-iset="${esc(x.id)}">Zapisz</button>`:`<button class="btn sm ghost" type="button" data-idel="${esc(x.id)}">Usuń</button>`}</td></tr>`; }).join("")
+    + `<tr class="tot"><td colspan="4">Razem inne koszty · ${esc(miesNazwa(V_.ym))}</td><td class="num">${zl2(V_.sumInne)} zł</td><td colspan="2">${nowe.length?`<button class="btn sm primary" type="button" id="vInneAll">Zapisz wszystkie (${nowe.length})</button>`:""}</td></tr>`;
+}
+async function inneSet(ids){
+  const L=VER.res.inne.filter(x=>ids.includes(x.id));
+  try{
+    const b=writeBatch(db);
+    L.forEach(x=>b.set(doc(db,C.k,x.id),{pz:x.r.pz,data:x.r.data,ym:x.r.data.slice(0,7),dost:x.r.dost,uwagi:x.r.uwagi,netto:x.r.netto??null,projekt:x.projekt,rodzaj:x.rodzaj,
+      zapisano:serverTimestamp(),zapisal:me.uid,zapisalNazwa:me.nazwa||me.login}));
+    await b.commit(); toast(L.length===1?"Zapisano koszt":`Zapisano ${L.length} ${plural(L.length,"koszt","koszty","kosztów")}`);
+  }catch(x){ failed(x); }
+}
+$("vInneRows").addEventListener("click",e=>{
+  const s_=e.target.closest("[data-iset]"); if(s_){ inneSet([s_.dataset.iset]); return; }
+  const d_=e.target.closest("[data-idel]"); if(d_){ deleteDoc(doc(db,C.k,d_.dataset.idel)).then(()=>toast("Usunięto koszt")).catch(failed); return; }
+  if(e.target.id==="vInneAll") inneSet(VER.res.inne.filter(x=>x.st!=="zapisane").map(x=>x.id));
+});
 async function verSet(ids){
   const L=VER.res.all.filter(x=>ids.includes(x.z.id) && x.plik!=null);
   try{
@@ -680,6 +734,9 @@ async function verXlsx(){
     const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:16},{wch:16},{wch:26},{wch:11},{wch:22},{wch:30},{wch:14},{wch:14},{wch:18}];
     for(let r=r0;r<aoa.length;r++) [6,7].forEach(c=>{ const cell=ws[X.utils.encode_cell({r,c})]; if(cell&&cell.t==="n") cell.z='#,##0.00 "zł"'; });
     const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Weryfikacja");
+    if(V_.inne.length){ const ai=[["Projekt","Rodzaj","PZ","Data","Dostawca","Uwagi","Netto [zł]","Stan"]]; V_.inne.forEach(x=>ai.push([x.projekt,x.rodzaj,x.r.pz,fD(x.r.data),x.r.dost,x.r.uwagi,x.r.netto??"",IST[x.st][1]]));
+      ai.push(["Razem","","","","","",V_.sumInne,""]); const wi=X.utils.aoa_to_sheet(ai); wi["!cols"]=[{wch:16},{wch:14},{wch:20},{wch:11},{wch:24},{wch:30},{wch:13},{wch:16}];
+      for(let r=1;r<ai.length;r++){ const c=wi[X.utils.encode_cell({r,c:6})]; if(c&&c.t==="n") c.z='#,##0.00 "zł"'; } X.utils.book_append_sheet(wb,wi,"Inne koszty"); }
     saveBlob(`weryfikacja-${V_.ym}.xlsx`, new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}));
   }catch(x){ failed(x); }
 }
@@ -793,7 +850,7 @@ function dopiszProjekt(kod){
 }
 // kurs w Truck App – logika w logika.js
 const ja = () => ({login:me.login, nazwa:me.nazwa});
-const nowyKurs = (zid, d) => nowyKursL(zid, d, sup(d.podw), ja(), serverTimestamp());
+const nowyKurs = (zid, d) => nowyKursL(zid, d, sup(d.podw), ja(), serverTimestamp(), Date.now(), KD);
 const zmianyKursu = (k, d, zmiany) => zmianyKursuL(k, d, zmiany, sup(d.podw), ja(), serverTimestamp(), today());
 async function saveZ(id, data, expectedWersja, force){
   const ref = id? doc(db,C.z,id) : doc(collection(db,C.z));
@@ -958,7 +1015,7 @@ function quickBtns(z){
 
 /* ---------- podwykonawcy / rodzaje (administrator) ---------- */
 let sId=null;
-const SF=["nazwa","dzial","tel","adres","email","osoba2","tel2","email2"];
+const SF=["nazwa","dzial","tel","adres","email","osoba2","tel2","email2","symbolMag"];
 /* Wspólna lista z Truck App: podwykonawca zapisany tutaj trafia też do dostawców logistyki (ustawienia/glowne.dostawcy),
    żeby biuro miało jego adres i telefon w formularzu kursu; przy dodawaniu można wybrać firmę z listy dostawców Truck App. */
 let DOST=[];   // dostawcy z Truck App (do podpowiedzi)
@@ -994,6 +1051,7 @@ function openS(id){
   dostUzupelniony=""; wczytajDostawcow();
   $("sTitle").textContent = p? p.nazwa : "Nowy podwykonawca";
   for(const k of SF) $("s_"+k).value = p?.[k]||"";
+  $("s_bezAwizacji").checked = !!p?.bezAwizacji;
   const used=P.map(x=>x.kolor); const k0 = p? (p.kolor??7) : ([0,1,2,3,4,5,6].find(c=>!used.includes(c)) ?? 7);
   $("s_kolor").innerHTML=[0,1,2,3,4,5,6,7].map(c=>`<label><input type="radio" name="kolor" value="${c}" ${c===k0?"checked":""} aria-label="Kolor ${c+1}"><span style="background:var(--c${c})"></span></label>`).join("");
   $("sDel").hidden=!p; $("sDelAsk").hidden=true; $("sErr").hidden=true;
@@ -1004,11 +1062,15 @@ $("fS").addEventListener("submit", async e=>{
   e.preventDefault();
   const d={}; for(const k of SF) d[k]=$("s_"+k).value.trim();
   d.kolor=+($("fS").querySelector("input[name=kolor]:checked")?.value ?? 7);
+  d.bezAwizacji=$("s_bezAwizacji").checked;
   if(!d.nazwa){ $("sErr").textContent="Podaj nazwę podwykonawcy."; $("sErr").hidden=false; return; }
   if(P.some(p=>p.id!==sId && String(p.nazwa).toLowerCase()===d.nazwa.toLowerCase())){ $("sErr").textContent="Taki podwykonawca już jest na liście."; $("sErr").hidden=false; return; }
   const prev=sId? sup(sId):null; d.kolejnosc = prev?.kolejnosc ?? (Math.max(0,...P.map(p=>p.kolejnosc||0))+1);
   let id=sId; if(!id){ id=slug(d.nazwa); if(P.some(p=>p.id===id)) id+="-"+Date.now().toString(36); }
   try{ await setDoc(doc(db,C.p,id), d);
+    // otwarte kursy tego podwykonawcy w Truck App: czy logistyka ma przypominać o awizo
+    const doZm=Object.entries(KR).filter(([,k])=>!kursZamkniety(k) && Z.some(z=>z.kursId && z.podw===id && KR[z.kursId]===k) && !!k.awizoZbedne!==d.bezAwizacji);
+    if(doZm.length){ const b=writeBatch(db); doZm.forEach(([kid])=>b.update(doc(db,"kursy",kid),{awizoZbedne:d.bezAwizacji,zmieniono:serverTimestamp(),zmienil:me.login||""})); await b.commit().catch(x=>console.warn(x)); }
     const tr=await doDostawcowTruckApp([d]);
     toast((prev?"Zapisano dane podwykonawcy":"Dodano podwykonawcę")+(tr>0?" – także na liście dostawców Truck App":tr<0?" (lista dostawców Truck App bez zmian – brak dostępu)":"")); $("dlgS").close(); }catch(x){ failed(x); }
 });
@@ -1098,6 +1160,10 @@ function startData(){
   subs.push(onSnapshot(query(collection(db,"kursy"), where("zrodlo","==","KOOP")), s=>{ KR=Object.fromEntries(s.docs.map(d=>[d.id,d.data()])); renderZ(); if(zId && $("dlgZ").open) pokazKurs(Z.find(x=>x.id===zId)); }, x=>console.warn(x)));
   V={};
   if(canSeeAmounts()) subs.push(onSnapshot(collection(db,C.v), s=>{ V=Object.fromEntries(s.docs.map(d=>[d.id,d.data()])); renderZ(); renderRaporty(); renderAlerts(); if(VER.rows.length) renderVer(false); if(zId && $("dlgZ").open) $("z_wartosc").value=V[zId]?.wartosc??""; }, lost));
+  KO={};
+  if(canSeeAmounts()) subs.push(onSnapshot(collection(db,C.k), s=>{ KO=Object.fromEntries(s.docs.map(d=>[d.id,d.data()])); renderRaporty(); if(VER.rows.length) renderVer(false); }, x=>console.warn(x)));
+  KD=null;
+  subs.push(onSnapshot(doc(db,"ustawienia","glowne"), s=>{ const o=s.exists()? s.data().koopOdbior : null; KD= o&&o.kier? o : null; }, x=>console.warn(x)));
   WER={};
   if(canSeeAmounts()) subs.push(onSnapshot(doc(db,C.u,"weryfikacje"), s=>{ WER=s.exists()? s.data() : {}; renderAlerts(); if(tab==="weryfikacja") renderVer(false); }, x=>console.warn(x)));
   subs.push(onSnapshot(doc(db,C.u,"slowniki"), s=>{ rodzajeZapisane=s.exists(); if(s.exists() && Array.isArray(s.data().rodzaje)) rodzaje=s.data().rodzaje.slice(); render(); }, lost));

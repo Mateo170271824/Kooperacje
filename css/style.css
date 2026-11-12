@@ -302,3 +302,6 @@ header.top .who b{color:#fff}
 .sf-mk{display:inline-flex;align-items:center;gap:4px}
 .sf-mk svg{width:11px!important;height:13px!important;overflow:visible;fill:#c99a00;flex:none}
 @media (prefers-color-scheme:dark){.sf-mk svg{fill:#f2b705}}
+
+/* sekcje w panelach: inne koszty w weryfikacji i w zestawieniu projektu */
+#vInneBox>.hd,#rpMatBox>.hd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:11px 14px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}

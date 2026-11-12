@@ -120,3 +120,43 @@ test("kod projektu do wspólnego słownika", () => {
   assert.equal(L.kodProjektu("jadj1240-26a"), "JADJ1240-26A");
   assert.equal(L.kodProjektu("hala   lipa"), "HALA LIPA");
 });
+
+test("przyjęcia PZ: podwykonawca + kod, jedno PZ = jedno zlecenie, inne koszty", () => {
+  const P = [{ id: "kr", nazwa: "KRAT-METAL" }, { id: "ro", nazwa: "ROLMASZ" }];
+  const Z = [
+    { id: "a", podw: "kr", nr: "LECM", data: "2026-10-22", odebrano: "2026-10-22", status: "Odebrane" },
+    { id: "b", podw: "ro", nr: "LECM", data: "2026-10-29", status: "Zlecone" },
+    { id: "c", podw: "kr", nr: "LECM", data: "2026-10-30", status: "Zlecone" },
+  ];
+  const rows = [
+    { i: 0, pz: "PZ 1", data: "2026-10-23", dost: "KRAT-METAL SP", netto: 100, uwagi: "blachy LECM" },
+    { i: 1, pz: "PZ 2", data: "2026-10-31", dost: "KRAT-METAL", netto: 50, uwagi: "LECM" },
+    { i: 2, pz: "PZ 3", data: "2026-10-24", dost: "KRAT-METAL", netto: 7, uwagi: "LECM" },
+    { i: 3, pz: "PZ 4", data: "2026-10-25", dost: "STALHURT", netto: 900, uwagi: "Blacha JANR1220-26B" },
+    { i: 4, pz: "PZ 5", data: "2026-10-25", dost: "JACOL", netto: 9, uwagi: "śruby" },
+  ];
+  const r = L.dopasujPZ(rows, Z, P, {}, ["LECM"]);
+  assert.deepEqual([...r.przyp].map(([k, v]) => [k, v.map(x => x.pz)]), [["a", ["PZ 1"]], ["c", ["PZ 2"]]]);
+  assert.equal(r.przyp.has("b"), false);                       // zlecenie ROLMASZ nie dostaje PZ od KRAT-METAL
+  assert.deepEqual(r.niedop.map(x => x.r.pz), ["PZ 3"]);         // nadmiarowe PZ czeka na ręczne przypisanie
+  assert.deepEqual(r.inne.map(x => [x.r.pz, x.projekt, x.rodzaj]), [["PZ 4", "JANR1220-26B", "Blacha"]]);
+  assert.deepEqual(r.pominiete.map(x => x.pz), ["PZ 5"]);
+  const m = L.dopasujPZ(rows, Z, P, { 2: "b" }, ["LECM"]);      // ręczne przypisanie ma pierwszeństwo
+  assert.deepEqual(m.przyp.get("b").map(x => x.pz), ["PZ 3"]);
+  assert.equal(L.idKosztu("PZ 132/M01/10/2026"), "PZ-132-M01-10-2026");
+});
+
+test("kurs z kooperacji: domyślny kierowca i auto, bez awizacji", () => {
+  const d = { data: "2026-11-12", nr: "LECM", rodzaj: "Blachy", opis: "#25", status: "Zlecone", doLog: true };
+  const p = { nazwa: "DAR-TEST", adres: "ul. Testowa 1", bezAwizacji: true };
+  const bez = L.nowyKurs("z1", d, p, { login: "jan" }, "TS", 1);
+  assert.equal(bez.awizoZbedne, true);
+  assert.equal(bez.kier, ""); assert.equal(bez.doUzup, true);
+  const dom = { kier: "Jan Kowalski", tel: "600100200", auto: "PO 12345", kierUid: "u-jan" };
+  const z = L.nowyKurs("z1", d, { nazwa: "X" }, { login: "jan" }, "TS", 1, dom);
+  assert.equal(z.nasz, "Jan Kowalski"); assert.equal(z.auto, "PO 12345"); assert.equal(z.kierUid, "u-jan");
+  assert.equal(z.kier, "Jan Kowalski, tel. 600100200 | PO 12345");
+  assert.equal(z.doUzup, false); assert.equal(z.awizoZbedne, false);
+  const u = L.zmianyKursu({ status: "Oczekuje na kierowcę" }, d, { podw: ["a", "b"] }, p, { login: "jan" }, "TS");
+  assert.equal(u.awizoZbedne, true);
+});
