@@ -1,7 +1,8 @@
 name: Aplikacja Android (APK)
 
 # Każdy push do main: buduje APK i wystawia do pobrania w Releases (tag „android”).
-# APK otwiera aktualną stronę Kooperacji (GitHub Pages), więc poprawki w aplikacji nie wymagają nowego APK.
+# APK otwiera Kooperacje w SteelFlow (steel-flow.web.app/kooperacje/), więc poprawki w aplikacji nie wymagają nowego APK.
+# Do pobrania: publiczne repo Kooperacje-App (tylko plik aplikacji) – sekret STEELFLOW_ZAPIS (Contents: Read and write do Kooperacje-App).
 # Podpis: sekrety ANDROID_KEYSTORE_BASE64 i ANDROID_KEYSTORE_PASSWORD – te same co w repo Kalkulator-stali.
 # Bez nich APK jest tylko budowane próbnie (Actions → Artifacts) i nie jest publikowane.
 
@@ -25,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+      HAS_ZAPIS: ${{ secrets.STEELFLOW_ZAPIS != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -75,3 +77,16 @@ jobs:
             --title "Kooperacje – Android (wersja ${{ github.run_number }})" \
             --notes "Na telefonie pobierz Kooperacje.apk i otwórz plik. Aplikacja otwiera zawsze aktualną wersję Kooperacji – nowe APK potrzebne jest tylko przy zmianach samej aplikacji Android." \
             --target "${{ github.sha }}" --latest
+
+      # publiczne repo tylko na plik aplikacji – działa także, gdy repo Kooperacje jest prywatne
+      - name: Publikacja do pobrania (repo Kooperacje-App)
+        if: env.HAS_KEYSTORE == 'true' && env.HAS_ZAPIS == 'true' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.STEELFLOW_ZAPIS }}
+        run: |
+          R=Mateo170271824/Kooperacje-App
+          gh release delete android --repo $R --yes --cleanup-tag || true
+          gh release create android Kooperacje.apk --repo $R \
+            --title "Kooperacje – Android (wersja ${{ github.run_number }})" \
+            --notes "Na telefonie pobierz Kooperacje.apk i otwórz plik. Aplikacja otwiera Kooperacje w SteelFlow (steel-flow.web.app/kooperacje/) – zawsze aktualna wersja." --latest
+

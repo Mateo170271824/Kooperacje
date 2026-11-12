@@ -3,8 +3,8 @@
 Kalendarz odbiorów od podwykonawców. Działa na wspólnej bazie z Truck App (Firebase `logistyka-app-41d7a`).
 Zlecenie z zaznaczonym „wyślij do logistyki” trafia do Truck App jako kurs. Kierowcę przypisuje logistyka.
 
-- Strona: https://mateo170271824.github.io/Kooperacje/
-- Android: https://github.com/Mateo170271824/Kooperacje/releases/latest/download/Kooperacje.apk (APK otwiera aktualną stronę)
+- Strona: **https://steel-flow.web.app/kooperacje/** (część SteelFlow; stary adres https://mateo170271824.github.io/Kooperacje/ tylko przekierowuje)
+- APK: https://github.com/Mateo170271824/Kooperacje-App/releases/latest/download/Kooperacje.apk (publiczne repo tylko na plik aplikacji)
 
 ## Kod
 - `index.html`, `css/style.css`: wygląd
