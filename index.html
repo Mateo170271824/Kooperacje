@@ -7,6 +7,7 @@
 <meta name="description" content="Kalendarz odbiorów od podwykonawców – pulpit, kalendarz, plan tygodnia, zlecenia.">
 <meta name="theme-color" content="#1f5f7a">
 <link rel="manifest" href="manifest.webmanifest">
+<script src="js/instaluj.js" data-nazwa="Kooperacje" data-apk="https://github.com/Mateo170271824/Kooperacje/releases/latest/download/Kooperacje.apk"></script>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -50,6 +51,7 @@
     <div class="err" id="lErr" hidden></div>
     <button class="btn primary" type="submit" id="lBtn">Zaloguj</button>
   </form>
+  <p style="text-align:center;margin:10px 0 0"><button class="btn sm" type="button" data-instaluj hidden title="Zainstaluj na telefonie albo komputerze">📲 Zainstaluj</button></p>
   <div class="sf-podpis">część systemu <b>SteelFlow</b><span class="sf-mk">made by <svg viewBox="0 0 96 110" aria-hidden="true"><path d="M14 14h66v16H56v50h24v16H14V80h24V30H14z"/></svg><b>M.K.</b></span></div>
 </section>
 
@@ -70,6 +72,7 @@
     </div>
     <div class="toolbar">
       <span class="who" id="who"></span>
+      <button class="btn sm" type="button" data-instaluj hidden title="Zainstaluj na telefonie albo komputerze">📲 Zainstaluj</button>
       <button class="btn sm" type="button" id="btnOut">Wyloguj</button>
       <button class="btn primary" id="btnNew" type="button">+ Nowe zlecenie</button>
     </div>

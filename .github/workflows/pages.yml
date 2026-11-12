@@ -55,7 +55,7 @@ jobs:
       - name: Pliki strony
         run: |
           mkdir www
-          cp -r index.html manifest.webmanifest icon.svg css js vendor www/
+          cp -r index.html manifest.webmanifest icon.svg icons sw.js css js vendor www/
           # każda publikacja ma własną wersję plików (?v=…), żeby przeglądarka nie trzymała starych
           V="${GITHUB_SHA::10}"
           sed -i -E "s/\?v=[0-9A-Za-z]+/?v=$V/g" www/index.html www/js/*.js
