@@ -249,18 +249,23 @@ function renderWeek(){
   $("wkRows").innerHTML=h;
   const e=$("wkEmpty"); e.hidden=!!list.length; e.innerHTML=`<span>Brak ${wkShow==="open"?"otwartych ":""}odbiorów w tym tygodniu.</span>`;
   const p=wkSup? sup(wkSup):null;
-  $("wkMail").innerHTML = `<div class="row"><span class="lbl">Plan tygodnia do wysłania</span><button class="btn sm" type="button" id="wkCopy" ${list.length?"":"disabled"}>Kopiuj treść planu</button>${p&&p.email&&list.length?`<a class="btn sm" id="wkMailto" href="#">Otwórz w poczcie</a>`:""}</div>`+
-    (p? `<div class="row small">Do: ${p.email?`<code>${esc(p.email)}</code>`:"brak adresu"} ${p.email2?`DW: <code>${esc(p.email2)}</code>`:""}</div>`
-       : `<div class="small">Wybierz podwykonawcę, żeby zobaczyć adresy e-mail (Do i DW) do wysłania planu.</div>`);
+  // mail z planem tygodnia: wybrany podwykonawca – jeden przycisk; bez wyboru – przycisk dla każdego podwykonawcy z odbiorami + cały plan
+  const mailto=(sp,L)=>{ const subj=`Plan odbiorów – tydzień ${isoWeek(wkStart)}`+(sp?" – "+sp.nazwa:"");
+    return `mailto:${sp&&sp.email?encodeURIComponent(sp.email):""}?${sp&&sp.email2?"cc="+encodeURIComponent(sp.email2)+"&":""}subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(planText(L,sp))}`; };
+  const wgPodw=[...new Set(list.map(z=>z.podw))].map(id=>({ s:sup(id), L:list.filter(z=>z.podw===id) })).filter(x=>x.s);
+  $("wkMail").innerHTML = `<div class="row"><span class="lbl">Plan tygodnia do wysłania</span>`+
+    (list.length? (p? `<a class="btn primary" id="wkMailto" href="${mailto(p,list)}">📧 Wyślij plan do ${esc(p.nazwa)}</a>` : `<a class="btn" id="wkMailAll" href="${mailto(null,list)}" title="Cały plan – adresata wpiszesz w poczcie">📧 Wyślij cały plan</a>`) : "")+
+    `<button class="btn sm" type="button" id="wkCopy" ${list.length?"":"disabled"}>Kopiuj treść planu</button></div>`+
+    (p? `<div class="row small">Do: ${p.email?`<code>${esc(p.email)}</code>`:"brak adresu – wpiszesz go w poczcie"} ${p.email2?`DW: <code>${esc(p.email2)}</code>`:""}</div>`
+       : wgPodw.length? `<div class="row wkPodw">${wgPodw.map(x=>`<a class="btn sm" href="${mailto(x.s,x.L)}" title="${esc([x.s.email,x.s.email2].filter(Boolean).join(", ")||"brak adresu – wpiszesz go w poczcie")}"><span class="sw" style="background:${supColor(x.s.id||x.L[0].podw)}"></span>📧 ${esc(x.s.nazwa)} (${x.L.length})</a>`).join("")}</div>
+         <div class="small">Każdy podwykonawca dostaje tylko swoje odbiory – adres z kartoteki podwykonawców.</div>` : "");
   $("wkCopy").onclick=()=>copyText(planText(list,p),"Skopiowano plan tygodnia");
-  const mt=$("wkMailto"); if(mt){ const subj=`Plan odbiorów – tydzień ${isoWeek(wkStart)}`;
-    mt.href=`mailto:${encodeURIComponent(p.email)}?${p.email2?"cc="+encodeURIComponent(p.email2)+"&":""}subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(planText(list,p))}`; }
 }
 function planText(list, p){
   const lines=[`Plan odbiorów – tydzień ${isoWeek(wkStart)} (${fDs(wkStart)} – ${fD(addD(wkStart,4))})${p?" – "+p.nazwa:""}`,""]; let cur="";
   for(const z of list){
     if(z.data!==cur){ cur=z.data; const dn=DNI[pd(cur).getDay()]; lines.push((lines.length>2?"\n":"")+dn[0].toUpperCase()+dn.slice(1)+" "+fD(cur)+":"); }
-    lines.push("- "+[p?null:supName(z.podw), z.nr, z.opis, z.ilosc?z.ilosc+" szt":null].filter(Boolean).join(" – ")+(z.status&&z.status!=="Zlecone"?` [${z.status}]`:"")+(z.uwagi?` (${z.uwagi})`:""));
+    lines.push("- "+[p?null:supName(z.podw), z.nr, (z.opis||"").replace(/\s*\n\s*/g," / "), z.ilosc?z.ilosc+" szt":null].filter(Boolean).join(" – ")+(z.status&&z.status!=="Zlecone"?` [${z.status}]`:"")+(z.uwagi?` (${z.uwagi})`:""));
   }
   return lines.join("\n");
 }
@@ -944,6 +949,8 @@ function readZ(){
     ilosc: $("z_ilosc").value===""? null : Math.round(+$("z_ilosc").value), status:$("z_status").value, odebrano:$("z_odebrano").value, uwagi:$("z_uwagi").value.trim(), doLog:$("z_dolog").checked };
 }
 let forceNext=false;
+// Enter w polach jednowierszowych nie zapisuje zlecenia (w opisie i uwagach – nowa linia); zapis tylko przyciskiem „Zapisz”
+$("fZ").addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.tagName==="INPUT" && e.target.type!=="checkbox") e.preventDefault(); });
 $("fZ").addEventListener("submit", async e=>{
   e.preventDefault();
   const d=readZ();

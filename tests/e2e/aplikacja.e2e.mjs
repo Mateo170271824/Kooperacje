@@ -77,6 +77,12 @@ try {
   ok("nowe zlecenie: „wyślij do logistyki” domyślnie zaznaczone", await p.isChecked("#z_dolog"));
   await p.fill("#z_data", "2030-01-10"); await p.selectOption("#z_podw", "p1"); await p.fill("#z_nr", "LECM"); await p.selectOption("#z_rodzaj", "Kątowniki");
   await p.fill("#z_opis", "Kątownik L50 cięty"); await p.fill("#z_ilosc", "12"); await p.fill("#z_uwagi", "pilne");
+  // Enter w polu jednowierszowym nie zapisuje zlecenia; w opisie – nowa linia
+  await p.focus("#z_nr"); await p.keyboard.press("Enter"); await p.waitForTimeout(300);
+  const otwarte = await p.isVisible("#zSave");
+  await p.focus("#z_opis"); await p.keyboard.press("End"); await p.keyboard.press("Enter"); await p.keyboard.type("otwory fi 18");
+  ok("zlecenie: Enter nie zapisuje, w opisie nowa linia", otwarte && (await p.inputValue("#z_opis")) === "Kątownik L50 cięty\notwory fi 18");
+  await p.fill("#z_opis", "Kątownik L50 cięty");
   await p.click("#zSave"); const t1 = await toast(p);
   ok("zapis zlecenia z kursem", /logistyka dostała kurs/.test(t1), t1);
   let K = await kursy(), k = K[0];
@@ -118,6 +124,11 @@ try {
   // wszystkie zakładki rysują się bez błędów; plan tygodnia jako PDF
   for (const t of ["pulpit", "kalendarz", "tydzien", "podwykonawcy", "zlecenia"]) { await zakladka(p, t); ok("zakładka " + t, await p.isVisible("#v-" + t)); }
   await zakladka(p, "tydzien");
+  for (let i = 0; i < 400 && !(await p.textContent("#wkTitle")).includes("11.01.2030"); i++) await p.click("#wkNext");
+  await p.selectOption("#wkShow", "all");
+  const wkBtns = await p.$$eval("#wkMail a[href^='mailto:']", a => a.map(x => x.textContent.trim()));
+  const wkHref = await p.$eval("#wkMail .wkPodw a", a => decodeURIComponent(a.href)).catch(() => "");
+  ok("plan tygodnia: mail od razu (cały plan + każdy podwykonawca)", wkBtns.some(t => t.includes("Wyślij cały plan")) && wkBtns.length >= 2 && wkHref.includes("Plan odbiorów – tydzień 2"), wkBtns.join(" | "));
   const pdf = await Promise.all([p.waitForEvent("download", { timeout: 45000 }), p.click("#wkPdf")]).then(([d]) => d.suggestedFilename(), async e => "brak pliku: " + e.message.split("\n")[0]);
   ok("plan tygodnia jako PDF", /^plan-odbiorow-tydz-\d+\.pdf$/.test(pdf), pdf);
   await ctx.close();
