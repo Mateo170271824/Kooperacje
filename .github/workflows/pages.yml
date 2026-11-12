@@ -1,7 +1,10 @@
 name: Publikacja aplikacji (GitHub Pages)
 
 # Każda zmiana: testy logiki i test ekranowy całej aplikacji na emulatorze bazy (prawdziwe reguły z Logistyki, dane wymyślone).
-# Strona publikuje się tylko z main i tylko wtedy, gdy wszystkie testy przejdą.
+# Po testach na main: (1) odświeżenie SteelFlow (steel-flow.web.app/kooperacje/ – tam działają Kooperacje),
+# (2) na starym adresie GitHub Pages tylko przekierowanie do SteelFlow (do czasu zmiany repo na prywatne).
+# Sekret STEELFLOW_ZAPIS: klucz z prawem Actions: Read and write do repo Logistyka (uruchamia publikację SteelFlow)
+# i Contents: Read and write do repo Kooperacje-App (APK do pobrania).
 # Ustawienie repozytorium: Settings → Pages → Source: „GitHub Actions”.
 
 on:
@@ -52,14 +55,9 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - name: Pliki strony
-        run: |
-          mkdir www
-          cp -r index.html manifest.webmanifest icon.svg icons sw.js css js vendor www/
-          # każda publikacja ma własną wersję plików (?v=…), żeby przeglądarka nie trzymała starych
-          V="${GITHUB_SHA::10}"
-          sed -i -E "s/\?v=[0-9A-Za-z]+/?v=$V/g" www/index.html www/js/*.js
-          grep -c "?v=$V" www/index.html www/js/app.js
+      # Kooperacje działają w SteelFlow (steel-flow.web.app/kooperacje/) – tu tylko przekierowanie ze starego adresu
+      - name: Strona przekierowania
+        run: mkdir www && cp przekierowanie/index.html przekierowanie/404.html przekierowanie/sw.js www/
       - uses: actions/configure-pages@v5
         with:
           enablement: true
@@ -68,3 +66,20 @@ jobs:
           path: www
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  steelflow:
+    needs: testy
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      HAS_ZAPIS: ${{ secrets.STEELFLOW_ZAPIS != '' }}
+    steps:
+      - name: Odświeżenie SteelFlow
+        env:
+          T: ${{ secrets.STEELFLOW_ZAPIS }}
+        run: |
+          if [ "$HAS_ZAPIS" != "true" ]; then echo "::warning::Brak sekretu STEELFLOW_ZAPIS – SteelFlow pobierze nową wersję Kooperacji przy sprawdzeniu co 2 godziny."; exit 0; fi
+          k=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Authorization: Bearer $T" -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/Mateo170271824/Logistyka/actions/workflows/steelflow.yml/dispatches -d '{"ref":"main"}')
+          if [ "$k" = "204" ]; then echo "Uruchomiono publikację SteelFlow."; else echo "::warning::Nie udało się uruchomić publikacji SteelFlow (HTTP $k) – klucz STEELFLOW_ZAPIS potrzebuje Actions: Read and write do repo Logistyka. SteelFlow odświeży się przy sprawdzeniu co 2 godziny."; fi
+
