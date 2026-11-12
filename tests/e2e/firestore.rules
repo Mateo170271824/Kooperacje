@@ -1,0 +1,337 @@
+// KOPIA reguł z repo Logistyka (firestore.rules) – testy ekranowe Kooperacji działają na prawdziwych regułach.
+// Po zmianie reguł w Logistyce skopiuj plik ponownie. Prawdziwe reguły publikuje repo Logistyka.
+rules_version = '2';
+
+// Reguły dostępu do bazy Skavska Logistyka.
+//  - biuro: widzi i zmienia wszystko,
+//  - kierowca: widzi tylko kursy przypisane do siebie (bez kosztów) i może zmienić w nich
+//    wyłącznie status, swój raport (postój, koszty w trasie), podpis odbiorcy i datę dostawy,
+//  - konto zablokowane (aktywny == false) albo bez profilu w /uzytkownicy: nic.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function profilPath(uid) {
+      return /databases/$(database)/documents/uzytkownicy/$(uid);
+    }
+    function zalogowany() {
+      return request.auth != null && exists(profilPath(request.auth.uid));
+    }
+    function profil() {
+      return get(profilPath(request.auth.uid)).data;
+    }
+    function aktywny() {
+      return zalogowany() && profil().aktywny == true;
+    }
+    function biuro() {
+      return aktywny() && profil().rola == 'biuro';
+    }
+    // Administrator: konto zapisane w /meta/init (pierwsze konto biura; rolę można przekazać)
+    function admin() {
+      return biuro() && get(/databases/$(database)/documents/meta/init).data.admin == request.auth.uid;
+    }
+    // Kooperacje (osobna aplikacja na tej samej bazie): konta biura, chyba że administrator
+    // odebrał dostęp polem kooperacje == false. Administrator ma dostęp zawsze.
+    function koop() {
+      return biuro() && (profil().get('kooperacje', true) != false || admin());
+    }
+    // Kwoty zamówień w Kooperacjach: tylko administrator i konta z uprawnieniem Zakupowiec
+    // (pole koopZakupowiec w profilu; zmienia je wyłącznie administrator).
+    function koopZakup() {
+      return koop() && (admin() || profil().get('koopZakupowiec', false) == true);
+    }
+    function kierowca() {
+      return aktywny() && profil().rola == 'kierowca';
+    }
+    // Magazynier (Mag App): widzi kursy (bez kosztów), potwierdza przyjęcie dostaw i wydanie wysyłek, dodaje skany WZ
+    function magazyn() {
+      return aktywny() && profil().rola == 'magazyn';
+    }
+
+    // Pierwsze uruchomienie: zakłada je pierwsze konto biura. Dokument jest publiczny do odczytu
+    // (zawiera tylko identyfikator), żeby ekran logowania wiedział, czy pokazać kreator.
+    match /meta/init {
+      allow get: if true;
+      allow create: if request.auth != null
+        && request.resource.data.admin == request.auth.uid
+        && existsAfter(profilPath(request.auth.uid));
+      // przekazanie roli administratora innemu kontu biura – tylko obecny administrator
+      allow update: if admin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['admin', 'czas'])
+        && exists(profilPath(request.resource.data.admin))
+        && get(profilPath(request.resource.data.admin)).data.rola == 'biuro';
+    }
+
+    match /uzytkownicy/{uid} {
+      allow get: if request.auth != null && (request.auth.uid == uid || biuro());
+      allow list: if biuro();
+      // Administrator zarządza wszystkimi kontami (w tym biura i dostępem do Kooperacji).
+      // Zwykłe biuro: tylko konta kierowców – nie zmieni roli na 'biuro', nie ruszy kont biura ani administratora.
+      allow update: if admin() || (biuro()
+        && resource.data.rola == 'kierowca' && request.resource.data.rola == 'kierowca'
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['kooperacje']));
+      allow delete: if admin() || (biuro() && resource.data.rola == 'kierowca');
+      // konta biura zakłada tylko administrator; wyjątek: pierwsze konto biura przy pierwszym uruchomieniu
+      allow create: if admin() || (biuro() && request.resource.data.rola == 'kierowca') || (
+        request.auth != null && request.auth.uid == uid
+        && !exists(/databases/$(database)/documents/meta/init)
+        && getAfter(/databases/$(database)/documents/meta/init).data.admin == uid
+        && request.resource.data.rola == 'biuro'
+        && request.resource.data.aktywny == true
+      );
+    }
+
+    // Obecność: każdy zgłasza tylko siebie, widzi ją tylko administrator
+    // Truck App: które nowe dostawy od zakupów dana osoba z biura już widziała (wspólne dla jej telefonu i komputera)
+    match /widziane/{uid} {
+      allow read: if biuro() && request.auth.uid == uid;
+      allow write: if biuro() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['zakupy', 'czas'])
+        && request.resource.data.zakupy is list && request.resource.data.zakupy.size() <= 300;
+    }
+    match /obecnosc/{uid} {
+      allow read: if admin();
+      allow write: if aktywny() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['login', 'nazwa', 'rola', 'urzadzenie', 'online', 'ostatnio']);
+    }
+
+    // Statystyka użycia funkcji: każdy zapisuje tylko swój dokument miesięczny; czyta tylko administrator.
+    match /uzycie/{id} {
+      allow read: if admin();
+      allow create, update: if aktywny()
+        && id == request.auth.uid + '_' + request.resource.data.miesiac
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.rola == profil().rola
+        && request.resource.data.keys().hasOnly(['uid', 'rola', 'miesiac', 'licz', 'ostatnio'])
+        && request.resource.data.licz is map && request.resource.data.licz.size() <= 60;
+    }
+    // Ocena aplikacji po miesiącu: każdy pisze tylko swoją; czyta autor i administrator.
+    match /oceny/{uid} {
+      allow read: if admin() || (aktywny() && request.auth.uid == uid);
+      allow create, update: if aktywny() && request.auth.uid == uid
+        && request.resource.data.rola == profil().rola
+        && request.resource.data.keys().hasOnly(['uid', 'rola', 'nazwa', 'start', 'odlozono', 'ocena', 'plus', 'minus', 'czas'])
+        && (!('ocena' in request.resource.data) || (request.resource.data.ocena is int && request.resource.data.ocena >= 1 && request.resource.data.ocena <= 5))
+        && (!('plus' in request.resource.data) || request.resource.data.plus.size() <= 2000)
+        && (!('minus' in request.resource.data) || request.resource.data.minus.size() <= 2000);
+    }
+
+    // PIN-y i hasła startowe czyta i zmienia tylko administrator – zwykłe biuro nie zaloguje się na cudze konto.
+    // Zwykłe biuro zapisuje PIN tylko przy zakładaniu konta kierowcy (create, bez nadpisywania istniejącego);
+    // każdy może zapisać własne hasło (zmiana swojego hasła).
+    match /piny/{uid} {
+      allow read: if admin();
+      allow create: if admin() || (aktywny() && request.auth.uid == uid)
+        || (biuro() && getAfter(profilPath(uid)).data.rola == 'kierowca');
+      allow update: if admin() || (aktywny() && request.auth.uid == uid);
+      allow delete: if admin();
+    }
+
+    match /kursy/{id} {
+      allow read: if biuro() || magazyn() || (kierowca() && resource.data.kierUid == request.auth.uid);
+      allow create, delete: if biuro();
+      allow update: if biuro() || (
+        // magazyn: przyjęcie dostawy (OK / niezgodność) i oznaczenie jako dostarczona
+        magazyn() && resource.data.typ == 'D'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['przyjecie', 'status', 'dst', 'dataS', 'zmieniono', 'zmienil'])
+        && request.resource.data.status in ['Dostarczone', resource.data.status]
+        && request.resource.data.zmienil == profil().login
+        && request.resource.data.przyjecie is map
+        && request.resource.data.przyjecie.stan in ['ok', 'niezgodnosc']
+        && (!('opis' in request.resource.data.przyjecie) || request.resource.data.przyjecie.opis.size() <= 2000)
+      ) || (
+        // magazyn: wydanie wysyłki (załadowane / problem) – bez zmiany statusu kursu
+        magazyn() && resource.data.typ == 'W'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['wydanie', 'zmieniono', 'zmienil'])
+        && request.resource.data.zmienil == profil().login
+        && request.resource.data.wydanie is map
+        && request.resource.data.wydanie.stan in ['ok', 'problem']
+        && (!('opis' in request.resource.data.wydanie) || request.resource.data.wydanie.opis.size() <= 2000)
+      ) || (
+        kierowca()
+        && resource.data.kierUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'kierStatus', 'kierStatusCzas', 'raport', 'podpis', 'poz', 'zdj', 'dst', 'dataS', 'zmieniono', 'zmienil'])
+        && (!('zdj' in request.resource.data) || request.resource.data.zdj is bool)
+        // lokalizacja przy zmianie statusu: mapa z najwyżej 3 punktami (załadowane, w drodze, dostarczone)
+        && (!('poz' in request.resource.data) || (request.resource.data.poz is map && request.resource.data.poz.keys().size() <= 3))
+        && (!('podpis' in request.resource.data) || request.resource.data.podpis == null
+            || (request.resource.data.podpis.obraz is string && request.resource.data.podpis.obraz.size() < 300000))
+        && request.resource.data.status in ['W realizacji', 'Dostarczone', resource.data.status]
+        && request.resource.data.kierStatus in ['', 'zaladowane', 'w_drodze', 'dostarczone']
+        // podpis zmiany zawsze własnym loginem; raport tylko jako mapa z kilkoma polami
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['zmienil']) || request.resource.data.zmienil == profil().login)
+        && (!('raport' in request.resource.data) || request.resource.data.raport == null
+            || (request.resource.data.raport is map && request.resource.data.raport.keys().size() <= 12))
+      );
+    }
+
+    // Zdjęcia dokumentów: kierowca dodaje do swojego kursu i widzi swoje; biuro widzi wszystkie.
+    // Kasowane po 30 dniach (usunPo) przez aplikację biura i codzienne zadanie.
+    match /zdjecia/{id} {
+      allow read: if biuro() || magazyn() || (kierowca() && resource.data.kierUid == request.auth.uid);
+      allow create: if (biuro() || magazyn() || (kierowca()
+          && request.resource.data.kierUid == request.auth.uid
+          && get(/databases/$(database)/documents/kursy/$(request.resource.data.kursId)).data.kierUid == request.auth.uid))
+        && request.resource.data.keys().hasOnly(['kursId', 'kierUid', 'obraz', 'czas', 'usunPo', 'kto', 'zrodlo'])
+        && request.resource.data.kursId is string
+        && request.resource.data.obraz is string && request.resource.data.obraz.size() < 450000
+        && request.resource.data.usunPo is timestamp
+        && request.resource.data.usunPo <= request.time + duration.value(32, 'd');
+      allow delete: if biuro() || (kierowca() && resource.data.kierUid == request.auth.uid)
+        || (magazyn() && resource.data.zrodlo in ['magazyn', 'niezgodnosc'] && resource.data.kto == profil().login);
+    }
+
+    // Koszty trzymane osobno – kierowca ich nie widzi.
+    match /koszty/{id} {
+      allow read, write: if biuro();
+    }
+    // Wspólny słownik projektów (kod projektu jak BUDC, LECM – id dokumentu = kod wielkimi literami) dla wszystkich aplikacji.
+    // Czyta i dopisuje biuro (Truck App, Kooperacje, Zapytania, Kombajn); usuwa tylko administrator.
+    match /projekty/{kod} {
+      allow read: if biuro();
+      allow create, update: if biuro()
+        && request.resource.data.keys().hasOnly(['kod', 'nazwa', 'klient', 'zrodla', 'utworzono', 'utworzyl', 'zmieniono', 'zmienil'])
+        && request.resource.data.kod == kod && kod.size() <= 40
+        && (!('nazwa' in request.resource.data) || request.resource.data.nazwa.size() <= 120)
+        && (!('klient' in request.resource.data) || request.resource.data.klient.size() <= 120);
+      allow delete: if admin();
+    }
+    // Kosz Truck App: usunięte kursy (kurs + koszty) do przywrócenia przez 90 dni – tylko biuro.
+    match /kursy_kosz/{id} {
+      allow read, write: if biuro();
+    }
+    // Dane wrażliwe (nr dowodu itp.) – tylko biuro; kasowane po dostarczeniu, a po terminie (usunPo) przez aplikację biura i codzienne zadanie kopii.
+    match /wrazliwe/{id} {
+      allow read: if biuro();
+      // po dostarczeniu kasuje je biuro albo kierowca tego kursu (kierowca nie może ich czytać)
+      allow delete: if biuro() || (kierowca()
+        && get(/databases/$(database)/documents/kursy/$(id)).data.kierUid == request.auth.uid);
+      allow create, update: if biuro()
+        && request.resource.data.keys().hasOnly(['tekst', 'usunPo', 'zmienil'])
+        && request.resource.data.tekst is string && request.resource.data.tekst.size() <= 500
+        && request.resource.data.usunPo is timestamp
+        && request.resource.data.usunPo <= request.time + duration.value(8, 'd');
+    }
+    match /nieob/{id} {
+      allow read, write: if biuro();
+    }
+    match /ustawienia/glowne {
+      allow read, write: if biuro();
+    }
+    // Kooperacje: zlecenia (z historią zmian), podwykonawcy, słowniki, kosz
+    match /koop_zlecenia/{id} {
+      allow read, write: if koop();
+      match /historia/{h} {
+        allow read, write: if koop();
+      }
+    }
+    match /koop_podwykonawcy/{id} {
+      allow read, write: if koop();
+    }
+    match /koop_ustawienia/{id} {
+      allow read, write: if koop();
+    }
+    match /koop_kosz/{id} {
+      allow read, write: if koop();
+    }
+    // Wartości zamówień trzymane osobno, żeby reszta biura ich nie widziała
+    match /koop_wartosci/{id} {
+      allow read, write: if koopZakup();
+    }
+    // Dane widoczne dla każdego zalogowanego (np. telefon do biura).
+    match /ustawienia/publiczne {
+      allow read: if aktywny();
+      allow write: if biuro();
+    }
+      // ===== Zapytania ofertowe (osobna aplikacja na tej samej bazie, repo Zapytania-ofertowe) =====
+    // Właściciel = administrator. Zastępca = aktywne konto wpisane w zap_ustawienia/dostep.zastepcy,
+    // tylko w dniach od–do i dopóki dostęp nie został odebrany.
+    // Każdy zapis zapytania/projektu musi mieć wpis w dzienniku w tej samej transakcji,
+    // a wpisów dziennika nie da się usunąć ani zmienić (poza odhaczeniem „przejrzane” przez właściciela).
+    function zapWlasciciel() {
+      return admin();
+    }
+    function zapZastepca() {
+      let z = get(/databases/$(database)/documents/zap_ustawienia/dostep).data.zastepcy;
+      return aktywny()
+        && request.auth.uid in z
+        && !('odwolano' in z[request.auth.uid])
+        && request.time >= z[request.auth.uid].od
+        && request.time < z[request.auth.uid]['do'];
+    }
+    function zapDostep() {
+      return zapWlasciciel() || zapZastepca();
+    }
+    function zapZDziennikiem() {
+      return existsAfter(/databases/$(database)/documents/zap_dziennik/$(request.resource.data.ostatniWpis))
+        && (resource == null || request.resource.data.ostatniWpis != resource.data.ostatniWpis);
+    }
+    match /zap_zapytania/{id} {
+      allow read: if zapDostep();
+      allow create, update: if zapDostep() && zapZDziennikiem();
+      allow delete: if zapWlasciciel();
+    }
+    match /zap_projekty/{id} {
+      allow read: if zapDostep();
+      allow create, update: if zapDostep() && zapZDziennikiem();
+      allow delete: if zapWlasciciel();
+    }
+    match /zap_dziennik/{id} {
+      allow read: if zapDostep();
+      allow create: if zapDostep()
+        && request.resource.data.kto == request.auth.uid
+        && request.resource.data.kiedy == request.time
+        && request.resource.data.zast == !zapWlasciciel()
+        && request.resource.data.przejrzane == zapWlasciciel();
+      allow update: if zapWlasciciel()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['przejrzane', 'przejrzanoKiedy']);
+      allow delete: if false;
+    }
+    // baza cen materiałów (lista z Subiekta) – właściciel i zastępca; usuwa tylko właściciel
+    match /zap_ceny/{id} {
+      allow read, create, update: if zapDostep();
+      allow delete: if zapWlasciciel();
+    }
+    // config, wagi, generator – właściciel i zastępca; dostep – czyta każde aktywne konto, zmienia tylko właściciel
+    match /zap_ustawienia/{d} {
+      allow read: if (d == 'dostep' && aktywny()) || zapDostep();
+      allow write: if (d == 'dostep' && zapWlasciciel()) || (d != 'dostep' && zapDostep());
+    }
+
+    // ===== Kombajn Zakupowca (osobna aplikacja na tej samej bazie, repo Kombajn-zakupowca) =====
+    // Zakupy profili: indeksy, ruchy tygodniowe, zamówienia, dostawy, odbiory, rynek, PUDS.
+    // Właściciel = administrator. Zastępca = aktywne konto wpisane w zak_ustawienia/dostep.zastepcy,
+    // tylko w dniach od–do i dopóki dostęp nie został odebrany (jak w Zapytaniach).
+    // Robot = konto techniczne zadań automatycznych (import raportu i pliku master, rynek):
+    // rola 'robot', zakres 'zakupy'. Czyta i zapisuje tylko dane zakupów – bez usuwania,
+    // bez dostępu do ustawień dostępu i do żadnych innych kolekcji.
+    function zakWlasciciel() {
+      return admin();
+    }
+    function zakZastepca() {
+      let z = get(/databases/$(database)/documents/zak_ustawienia/dostep).data.zastepcy;
+      return aktywny()
+        && request.auth.uid in z
+        && !('odwolano' in z[request.auth.uid])
+        && request.time >= z[request.auth.uid].od
+        && request.time < z[request.auth.uid]['do'];
+    }
+    function zakDostep() {
+      return zakWlasciciel() || zakZastepca();
+    }
+    function zakRobot() {
+      return aktywny() && profil().rola == 'robot' && profil().get('zakres', '') == 'zakupy';
+    }
+    match /{kol}/{id} {
+      allow read, create, update: if kol in ['zak_cfg', 'zak_tyg', 'zak_zam', 'zak_dost', 'zak_odb', 'zak_rynek', 'zak_puds']
+        && (zakDostep() || zakRobot());
+      allow delete: if kol in ['zak_cfg', 'zak_tyg', 'zak_zam', 'zak_dost', 'zak_odb', 'zak_rynek', 'zak_puds']
+        && zakWlasciciel();
+    }
+    // dostep – czyta każde aktywne konto (ekran startowy wie, czy wpuścić), zmienia tylko właściciel
+    match /zak_ustawienia/{d} {
+      allow read: if (d == 'dostep' && aktywny()) || zakDostep();
+      allow write: if (d == 'dostep' && zakWlasciciel()) || (d != 'dostep' && zakDostep());
+    }
+  }
+}

@@ -1,0 +1,77 @@
+name: Aplikacja Android (APK)
+
+# Każdy push do main: buduje APK i wystawia do pobrania w Releases (tag „android”).
+# APK otwiera aktualną stronę Kooperacji (GitHub Pages), więc poprawki w aplikacji nie wymagają nowego APK.
+# Podpis: sekrety ANDROID_KEYSTORE_BASE64 i ANDROID_KEYSTORE_PASSWORD – te same co w repo Kalkulator-stali.
+# Bez nich APK jest tylko budowane próbnie (Actions → Artifacts) i nie jest publikowane.
+
+on:
+  push:
+    branches: [main]
+    paths: ["android/**", "apk-www/**", "assets/**", "capacitor.config.json", "package.json", "package-lock.json", ".github/workflows/android.yml"]
+  pull_request:
+    paths: ["android/**", "apk-www/**", "assets/**", "capacitor.config.json", "package.json", "package-lock.json", ".github/workflows/android.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npx cap sync android
+
+      - name: Klucz podpisu z sekretów
+        if: env.HAS_KEYSTORE == 'true'
+        env:
+          KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KS" | tr -d ' \r\n' | base64 -d > "$RUNNER_TEMP/release.keystore"
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+      - name: Brak klucza podpisu
+        if: env.HAS_KEYSTORE != 'true'
+        run: echo "::warning::Brak sekretów ANDROID_KEYSTORE_BASE64 / ANDROID_KEYSTORE_PASSWORD – APK zbudowane próbnie, bez publikacji."
+
+      - name: Budowanie APK
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "$GITHUB_WORKSPACE/Kooperacje.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kooperacje-apk
+          path: Kooperacje.apk
+          retention-days: 30
+
+      # publikować wolno tylko wersję ze stałym kluczem – inaczej aktualizacja wymagałaby odinstalowania
+      - name: Publikacja do pobrania (Releases)
+        if: env.HAS_KEYSTORE == 'true' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android --yes --cleanup-tag || true
+          gh release create android Kooperacje.apk \
+            --title "Kooperacje – Android (wersja ${{ github.run_number }})" \
+            --notes "Na telefonie pobierz Kooperacje.apk i otwórz plik. Aplikacja otwiera zawsze aktualną wersję Kooperacji – nowe APK potrzebne jest tylko przy zmianach samej aplikacji Android." \
+            --target "${{ github.sha }}" --latest
