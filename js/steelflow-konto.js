@@ -1,10 +1,10 @@
-/* SteelFlow – wspólny moduł logowania i bazy (wersja 1)
+/* SteelFlow – wspólny moduł logowania i bazy (wersja 2)
    Jedno źródło: repo Logistyka, plik wspolne/steelflow-konto.js. Aplikacje (Kooperacje, Zapytania ofertowe,
    Kombajn Zakupowca) mają jego DOKŁADNĄ kopię w js/steelflow-konto.js – zmieniaj tylko tutaj i kopiuj:
    node wspolne/kopiuj.mjs  (sprawdza też, czy kopie są aktualne).
    Moduł nie importuje Firebase – aplikacja podaje swoje SDK (Truck App: z npm, pozostałe: z gstatic). */
 
-export const WERSJA = 1;
+export const WERSJA = 2;
 export const FIREBASE_SDK = '10.12.2';   // wersja SDK ładowana z gstatic (Kooperacje, Zapytania, Kombajn)
 
 // Konfiguracja aplikacji internetowej nie jest tajna – dostępu do danych pilnują reguły bazy (firestore.rules w repo Logistyka).
@@ -62,12 +62,18 @@ export function trybEmulatora(loc = globalThis.location, ls = globalThis.localSt
 }
 
 // Połączenie z bazą. sdk = { initializeApp, auth: moduł firebase-auth, firestore: moduł firebase-firestore }.
-// opcje: { emuPort: port emulatora bazy (8080), projektEmu: id projektu w emulatorze, auth/firestore: własne ustawienia }
+// opcje: { emuPort: port emulatora bazy (8080), projektEmu: id projektu w emulatorze, auth/firestore: własne ustawienia,
+//          offline: true – dane zapamiętywane w urządzeniu (przeglądanie bez internetu, zmiany wysyłane po powrocie sieci) }
 export function polacz(sdk, opcje = {}) {
   const emu = opcje.emulator ?? trybEmulatora();
   const app = sdk.initializeApp(emu && opcje.projektEmu ? { ...firebaseConfig, projectId: opcje.projektEmu } : firebaseConfig, opcje.nazwa);
   const auth = opcje.auth ? sdk.auth.initializeAuth(app, opcje.auth) : sdk.auth.getAuth(app);
-  const db = opcje.firestore ? sdk.firestore.initializeFirestore(app, opcje.firestore) : sdk.firestore.getFirestore(app);
+  let ustF = opcje.firestore || null;
+  if (opcje.offline && sdk.firestore.persistentLocalCache && !(ustF && ustF.localCache)) {
+    try { ustF = { ...(ustF || {}), localCache: sdk.firestore.persistentLocalCache({ tabManager: sdk.firestore.persistentMultipleTabManager() }) }; }
+    catch (e) { /* przeglądarka bez IndexedDB (np. tryb prywatny) – zwykła pamięć */ }
+  }
+  const db = ustF ? sdk.firestore.initializeFirestore(app, ustF) : sdk.firestore.getFirestore(app);
   if (emu) {
     sdk.auth.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
     sdk.firestore.connectFirestoreEmulator(db, '127.0.0.1', opcje.emuPort || 8080);

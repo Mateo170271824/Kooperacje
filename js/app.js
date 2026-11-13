@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import * as FF from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { collection, doc, onSnapshot, runTransaction, serverTimestamp, getDocs, query, where, orderBy, limit, writeBatch, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { normLogin, iso, today, pd, addD, monday, isoWeek, fD, fDs, dniMiedzy, esc, plural, STATUSY, POLA, POLA_NAZWY, closed, projOf, alertOf as alertDnia, diff, kodProjektu, kursZamkniety, nowyKurs as nowyKursL, zmianyKursu as zmianyKursuL, rodzajZmianyKursu, kursStan as kursStanL } from "./logika.js?v=2";
+import { normLogin, iso, today, pd, addD, monday, isoWeek, fD, fDs, dniMiedzy, esc, plural, STATUSY, POLA, POLA_NAZWY, closed, projOf, alertOf as alertDnia, diff, kodProjektu, kursZamkniety, nowyKurs as nowyKursL, zmianyKursu as zmianyKursuL, rodzajZmianyKursu, kursStan as kursStanL, scalZlecenie } from "./logika.js?v=2";
 import { polacz, zaloguj, komunikat, dostepBiura } from "./steelflow-konto.js?v=2";
 import { hStyle, kw, miesNazwa, natywna, newPdf, nowStamp, pdfFooter, pdfHeader, saveBlob, tStyle } from './czesci/pliki.js?v=3';
 import { exportCsv, openS, saveRodz } from './czesci/podwykonawcy.js?v=3';
@@ -15,7 +15,7 @@ import { $, MIES } from './czesci/stale.js?v=3';
 /* ===== Firebase – ten sam projekt co Truck App; konfiguracja, login i tryb emulatora (?emu na localhost)
    ze wspólnego modułu SteelFlow (js/steelflow-konto.js, kopia z repo Logistyka) ===== */
 export const SDK = { initializeApp, auth: FA, firestore: FF };
-export const POL = polacz(SDK, { emuPort: 8085 });
+export const POL = polacz(SDK, { emuPort: 8085, offline: true });   // dane w urządzeniu – przeglądanie bez internetu
 export const auth = POL.auth, db = POL.db;
 
 export const C = { z:"koop_zlecenia", p:"koop_podwykonawcy", u:"koop_ustawienia", kosz:"koop_kosz", v:"koop_wartosci", k:"koop_koszty" };
@@ -390,13 +390,21 @@ export function dopiszProjekt(kod){
 export const ja = () => ({login:me.login, nazwa:me.nazwa});
 export const nowyKurs = (zid, d) => nowyKursL(zid, d, sup(d.podw), ja(), serverTimestamp(), Date.now(), KD);
 export const zmianyKursu = (k, d, zmiany) => zmianyKursuL(k, d, zmiany, sup(d.podw), ja(), serverTimestamp(), today());
-export async function saveZ(id, data, expectedWersja, force){
+export async function saveZ(id, data, expectedWersja, force, baza){
+  if (navigator.onLine === false) return zapiszOffline(id, data, baza);
+  let scalono = null;
   const ref = id? doc(db,C.z,id) : doc(collection(db,C.z));
   return runTransaction(db, async tx=>{
     const snap = await tx.get(ref);
     const cur = snap.exists()? snap.data() : null;
     if (id && !cur) return {gone:true};
-    if (cur && !force && (cur.wersja||0)!==(expectedWersja||0)) return {conflict:cur};
+    if (cur && !force && (cur.wersja||0)!==(expectedWersja||0)){
+      // ktoś zmienił zlecenie w międzyczasie: łączymy, jeśli zmiany dotyczą różnych pól
+      if (!baza) return {conflict:cur, pola:[]};
+      const s = scalZlecenie(baza, cur, data);
+      if (s.konflikty.length) return {conflict:cur, pola:s.konflikty};
+      data = {...data, ...s.wynik}; scalono = Object.keys(s.ichZm);
+    }
     const kRef = cur?.kursId? doc(db,"kursy",cur.kursId) : null;
     const kSnap = kRef? await tx.get(kRef) : null;
     const zmiany = diff(cur, data);
@@ -420,8 +428,38 @@ export async function saveZ(id, data, expectedWersja, force){
     if (cur) tx.update(ref, {...data, ...kto, ...extra, wersja:(cur.wersja||0)+1});
     else tx.set(ref, {...data, ...kto, ...extra, utworzono:serverTimestamp(), utworzyl:me.uid, utworzylNazwa:me.nazwa||me.login, wersja:1});
     tx.set(doc(collection(ref,"historia")), {kiedy:serverTimestamp(), kto:me.uid, nazwa:me.nazwa||me.login, akcja:cur?"zmiana":"utworzenie", zmiany});
-    return {ok:true, nowy:!cur, id:ref.id, kurs};
-  });
+    return {ok:true, nowy:!cur, id:ref.id, kurs, scalono, scalonyKto: scalono? (cur.zmienilNazwa||"ktoś") : ""};
+  }).catch(x => { if (x && (x.code==="unavailable" || x.code==="deadline-exceeded")) return zapiszOffline(id, data, baza); throw x; });
+}
+// Zapis bez internetu: do pamięci urządzenia, wysyła się sam po powrocie sieci (bez transakcji).
+// Zapisujemy tylko zmienione pola – po wysłaniu łączą się z cudzymi zmianami innych pól.
+export function zapiszOffline(id, data, baza){
+  const cur = id? Z.find(x=>x.id===id) : null;
+  if (id && !cur) return {gone:true};
+  const ref = id? doc(db,C.z,id) : doc(collection(db,C.z));
+  const zmiany = diff(baza||cur, data);
+  if (cur && !Object.keys(zmiany).length) return {nochange:true, id:ref.id};
+  const b = writeBatch(db);
+  const kto = {zmieniono:serverTimestamp(), zmienil:me.uid, zmienilNazwa:me.nazwa||me.login};
+  const otwarte = data.status!=="Anulowane" && data.status!=="Odebrane";
+  let kursId = cur?.kursId || "", kurs = "";
+  const k = kursId? KR[kursId] : null;
+  if (k){
+    const u = zmianyKursu(k, data, zmiany);
+    if (u){ b.update(doc(db,"kursy",kursId), u); if(u.dataS) b.set(doc(db,"koszty",kursId), {dataS:u.dataS}, {merge:true}); kurs = rodzajZmianyKursu(u); }
+    if (!data.doLog) kursId = "";
+  }
+  if (data.doLog && otwarte && !kursId){
+    const nRef = doc(collection(db,"kursy")), nk = nowyKurs(ref.id, data);
+    b.set(nRef, nk);
+    b.set(doc(db,"koszty",nRef.id), {dataS:nk.dataS, koszt:null, waluta:"PLN", dopl:null, faktura:null, oferty:null, zapytanie:null});
+    kursId = nRef.id; kurs = "nowy";
+  }
+  if (cur){ const pola = {}; for (const p of Object.keys(zmiany)) pola[p] = data[p]; b.update(ref, {...pola, ...kto, kursId, wersja:FF.increment(1)}); }
+  else b.set(ref, {...data, ...kto, kursId, utworzono:serverTimestamp(), utworzyl:me.uid, utworzylNazwa:me.nazwa||me.login, wersja:1});
+  b.set(doc(collection(ref,"historia")), {kiedy:serverTimestamp(), kto:me.uid, nazwa:me.nazwa||me.login, akcja:cur?"zmiana":"utworzenie", zmiany, offline:true});
+  b.commit().catch(x => { console.warn(x); toast("Zmiana zapisana bez internetu nie przeszła po połączeniu: "+(x&&x.code||x)); });
+  return {ok:true, offline:true, nowy:!cur, id:ref.id, kurs};
 }
 export const kursStan = z => kursStanL(z, KR[z.kursId]);
 export const kursTag = z => { const s=kursStan(z); return s? `<br><span class="pill ${s.cls}" title="Kurs w Truck App">${esc(s.txt)}</span>` : ""; };
@@ -434,6 +472,7 @@ export function pokazKurs(z){
 }
 
 export let zId=null, zWersja=0;
+export let zBaza=null;   // zlecenie przy otwarciu formularza – do łączenia zmian
 export function fillZ(v){
   $("z_data").value=v.data||""; $("z_podw").value=v.podw||""; $("z_nr").value=v.nr||""; $("z_rodzaj").value=v.rodzaj||"";
   $("z_opis").value=v.opis||""; $("z_ilosc").value=v.ilosc??""; $("z_status").value=v.status||"Zlecone"; $("z_odebrano").value=v.odebrano||""; $("z_uwagi").value=v.uwagi||"";
@@ -444,7 +483,7 @@ export function openZ(id, preset){
   const z = id? Z.find(x=>x.id===id) : null;
   if(!z && !canWrite) return;
   if(!P.length && !z){ toast("Najpierw trzeba dodać podwykonawców (zakładka Podwykonawcy)"); setTab("podwykonawcy"); return; }
-  zId=id; zWersja=z?.wersja||0;
+  zId=id; zWersja=z?.wersja||0; zBaza = z? JSON.parse(JSON.stringify(z)) : null;
   const v = z || {data:preset.data||today(), podw:preset.podw||sortedP()[0]?.id, status:"Zlecone", doLog:true};
   $("zTitle").textContent = z? "Zlecenie "+(z.nr||fD(z.data)) : "Nowe zlecenie";
   $("z_podw").innerHTML=sortedP().map(p=>`<option value="${p.id}">${esc(p.nazwa)}</option>`).join("");
@@ -497,10 +536,10 @@ $("fZ").addEventListener("submit", async e=>{
   d.projekt=proj;
   $("zSave").disabled=true;
   try{
-    const r=await saveZ(zId, d, zWersja, forceNext);
+    const r=await saveZ(zId, d, zWersja, forceNext, zBaza);
     if(r.ok) dopiszProjekt(projOf(d));   // nowy kod trafia do wspólnego słownika projektów
     forceNext=false;
-    if(r.conflict){ showConflict(r.conflict); return; }
+    if(r.conflict){ showConflict(r.conflict, r.pola); return; }
     if(r.gone){ $("zErr").textContent="To zlecenie zostało w międzyczasie usunięte."; $("zErr").hidden=false; return; }
     let kwotaZmieniona=false;
     const zid=r.id||zId;
@@ -514,16 +553,17 @@ $("fZ").addEventListener("submit", async e=>{
       }
     }
     const kt = r.kurs==="nowy"? " – logistyka dostała kurs do przypisania kierowcy" : r.kurs==="anulowany"? " – kurs w Truck App anulowany" : r.kurs==="dostarczony"? " – kurs w Truck App zamknięty jako dowieziony" : r.kurs==="przywrocony"? " – kurs w Truck App przywrócony, logistyka przypisze kierowcę" : r.kurs==="zmieniony"? " – kurs w Truck App zaktualizowany" : "";
-    toast((r.nowy? "Dodano zlecenie" : !r.nochange? "Zapisano zmiany" : kwotaZmieniona? "Zapisano wartość zamówienia" : "Bez zmian")+kt);
+    toast((r.offline? (r.nowy? "Dodano zlecenie bez internetu" : "Zapisano bez internetu")+" – wyśle się samo po powrocie sieci" : r.nowy? "Dodano zlecenie" : !r.nochange? "Zapisano zmiany" : kwotaZmieniona? "Zapisano wartość zamówienia" : "Bez zmian")+(r.scalono&&r.scalono.length? ` (połączone ze zmianami: ${r.scalonyKto})` : "")+kt);
     $("dlgZ").close();
   }catch(x){ failed(x); }
   finally{ $("zSave").disabled=false; }
 });
-export function showConflict(cur){
+export function showConflict(cur, pola){
   const box=$("zConflict"); box.hidden=false;
-  box.innerHTML=`<div><b>${esc(cur.zmienilNazwa||"Ktoś")}</b> zmienił(a) to zlecenie ${fTs(cur.zmieniono)}, gdy je edytowałeś(aś). Twoje zmiany nie zostały jeszcze zapisane.</div>
+  const lista = (pola||[]).length? `<div class="small">Oboje zmieniliście: <b>${pola.map(p=>esc(POLA_NAZWY[p]||p)).join(", ")}</b> – ich wartość: ${pola.map(p=>esc(String(cur[p]??"—"))).join(", ")}. Pozostałe zmiany połączyłyby się same.</div>` : "";
+  box.innerHTML=`<div><b>${esc(cur.zmienilNazwa||"Ktoś")}</b> zmienił(a) to zlecenie ${fTs(cur.zmieniono)}, gdy je edytowałeś(aś). Twoje zmiany nie zostały jeszcze zapisane.</div>${lista}
     <div class="toolbar"><button class="btn sm" type="button" id="cfLoad">Wczytaj ich wersję</button><button class="btn sm" type="button" id="cfForce">Zapisz moją wersję mimo to</button></div>`;
-  $("cfLoad").onclick=()=>{ fillZ(cur); zWersja=cur.wersja||0; box.hidden=true; loadAudit({...cur, id:zId}); toast("Wczytano aktualną wersję"); };
+  $("cfLoad").onclick=()=>{ fillZ(cur); zWersja=cur.wersja||0; zBaza=JSON.parse(JSON.stringify(cur)); box.hidden=true; loadAudit({...cur, id:zId}); toast("Wczytano aktualną wersję"); };
   $("cfForce").onclick=()=>{ forceNext=true; $("fZ").requestSubmit(); };
 }
 $("zDel").onclick=()=>{$("zDelAsk").hidden=false;};
@@ -542,7 +582,7 @@ $("zDelYes").onclick=async()=>{
 export async function markStatus(id, status){
   const z=Z.find(x=>x.id===id); if(!z) return;
   const d={}; for(const k of POLA) d[k]=z[k]??(k==="ilosc"?null:""); d.status=status; if(status==="Odebrane") d.odebrano=today();
-  try{ const r=await saveZ(id,d,z.wersja||0,false);
+  try{ const r=await saveZ(id,d,z.wersja||0,false,z);
     if(r.conflict){ toast("Ktoś właśnie zmienił to zlecenie – otwórz je i sprawdź"); return; }
     toast(status==="Odebrane"?"Oznaczono jako odebrane":"Oznaczono: gotowe do odbioru"); }catch(x){ failed(x); }
 }

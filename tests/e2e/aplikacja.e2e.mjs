@@ -39,6 +39,7 @@ await baza(async db => {
   await s("koop_podwykonawcy/p2", { nazwa: "Podwykonawca B", kolor: 1, kolejnosc: 2 });
   await s("koop_ustawienia/slowniki", { rodzaje: ["Kątowniki", "Obróbki", "Inne"] });
   await s("koop_zlecenia/stare", { data: "2030-01-15", podw: "p1", nr: "STEC", projekt: "STEC", opis: "Stare zlecenie", status: "Zlecone", wersja: 1 });
+  await s("koop_zlecenia/scal", { data: "2030-02-10", podw: "p1", nr: "SC-1", projekt: "STEC", opis: "Do łączenia zmian", status: "Zlecone", wersja: 1 });
 });
 // arkusz z podwykonawcami (wymyślony)
 const plikPodw = join(TMP, "podwykonawcy.xlsx");
@@ -158,6 +159,23 @@ try {
   const k8 = (await kursy()).find(x => x.koopId === "stare" && x.status !== "Anulowane");
   await otworz(p, "Stare zlecenie"); await p.click("#zDel"); await p.click("#zDelYes"); const td = await toast(p);
   ok("usunięcie zlecenia anuluje kurs", (await kursy()).find(x => x.id === k8.id).status === "Anulowane", td);
+  // ===== łączenie zmian: ktoś zmienił inne pole w trakcie edycji → połączone; to samo pole → pytanie; bez internetu → zapis w urządzeniu
+  await otworz(p, "Do łączenia"); await p.fill("#z_uwagi", "moja uwaga");
+  await baza(db => updateDoc(doc(db, "koop_zlecenia", "scal"), { status: "Gotowe do odbioru", wersja: 2, zmienilNazwa: "Ewa z biura" }));
+  await p.waitForTimeout(800); await p.click("#zSave"); const tm = await toast(p);
+  let zs = await dok("koop_zlecenia", "scal");
+  ok("łączenie: zmiany różnych pól połączone (moje uwagi + ich status)", zs.uwagi === "moja uwaga" && zs.status === "Gotowe do odbioru" && /połączone/.test(tm), tm);
+  await otworz(p, "Do łączenia"); await p.fill("#z_nr", "SC-MOJE");
+  await baza(db => updateDoc(doc(db, "koop_zlecenia", "scal"), { nr: "SC-ICH", wersja: (zs.wersja || 0) + 1, zmienilNazwa: "Ewa z biura" }));
+  await p.waitForTimeout(800); await p.click("#zSave"); await p.waitForSelector("#zConflict:not([hidden])", { timeout: 8000 }).catch(() => {});
+  ok("łączenie: to samo pole – pytanie z nazwą pola", await p.isVisible("#zConflict") && /Nr/i.test(await p.textContent("#zConflict")), (await p.textContent("#zConflict").catch(() => "")).slice(0, 120));
+  await p.keyboard.press("Escape"); await p.waitForTimeout(300);
+  await otworz(p, "Do łączenia"); await p.fill("#z_uwagi", "zapis bez internetu");
+  await ctx.setOffline(true); await p.click("#zSave"); const to = await toast(p).catch(() => "");
+  ok("bez internetu: zapis w urządzeniu z komunikatem", /bez internetu/i.test(to), to);
+  await ctx.setOffline(false);
+  let poSieci = null; for (let i = 0; i < 30 && poSieci !== "zapis bez internetu"; i++) { await p.waitForTimeout(500); poSieci = (await dok("koop_zlecenia", "scal")).uwagi; }
+  ok("bez internetu: po powrocie sieci zmiana wysłana do bazy", poSieci === "zapis bez internetu", poSieci);
   for (const t of ["raporty", "weryfikacja", "dostep"]) { await zakladka(p, t); ok("zakładka administratora " + t, await p.isVisible("#v-" + t)); }
   await ctx.close();
 } catch (e) { bledy.push("TEST: " + (e.stack || e.message)); }
