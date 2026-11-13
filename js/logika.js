@@ -39,6 +39,17 @@ export function diff(cur, next){
   return out;
 }
 
+/* ---------- łączenie zmian (trzy wersje) ----------
+   baza = zlecenie przy otwarciu formularza, ich = aktualne w bazie, moje = z formularza.
+   Pola zmienione tylko przez jedną stronę łączą się same; konflikt = to samo pole zmienione przez obie strony na różne wartości. */
+export function scalZlecenie(baza, ich, moje){
+  const mojeZm = diff(baza, moje), ichZm = diff(baza, ich || {});
+  const konflikty = Object.keys(mojeZm).filter(k => k in ichZm && String(ichZm[k][1]) !== String(mojeZm[k][1]));
+  const wynik = {};
+  for(const k of POLA) wynik[k] = (k in mojeZm) ? moje[k] : (ich && k in ich ? ich[k] : moje[k]);
+  return { wynik, konflikty, mojeZm, ichZm };
+}
+
 /* ---------- weryfikacja kosztów (eksport przyjęć PZ) ---------- */
 export const normTxt = s => String(s||"").toUpperCase().replace(/Ł/g,"L").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/[^A-Z0-9]+/g," ").trim();
 export function cellDate(v){

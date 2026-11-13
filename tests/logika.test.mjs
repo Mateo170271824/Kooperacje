@@ -160,3 +160,25 @@ test("kurs z kooperacji: domyślny kierowca i auto, bez awizacji", () => {
   const u = L.zmianyKursu({ status: "Oczekuje na kierowcę" }, d, { podw: ["a", "b"] }, p, { login: "jan" }, "TS");
   assert.equal(u.awizoZbedne, true);
 });
+
+// ---------- łączenie zmian (trzy wersje) ----------
+import { scalZlecenie } from "../js/logika.js";
+test("scalZlecenie: różne pola – łączy się samo", () => {
+  const baza = { data: "2030-01-15", podw: "p1", nr: "A1", opis: "Kątownik", status: "Zlecone", uwagi: "" };
+  const ich = { ...baza, status: "Gotowe do odbioru" };            // ktoś zmienił status
+  const moje = { ...baza, uwagi: "pilne", ilosc: null, rodzaj: "", odebrano: "", doLog: false };  // ja – uwagi
+  const s = scalZlecenie(baza, ich, moje);
+  assert.deepEqual(s.konflikty, []);
+  assert.equal(s.wynik.status, "Gotowe do odbioru");
+  assert.equal(s.wynik.uwagi, "pilne");
+});
+test("scalZlecenie: to samo pole różnie – konflikt", () => {
+  const baza = { data: "2030-01-15", podw: "p1", nr: "A1", status: "Zlecone" };
+  const s = scalZlecenie(baza, { ...baza, data: "2030-01-20" }, { ...baza, data: "2030-01-22" });
+  assert.deepEqual(s.konflikty, ["data"]);
+});
+test("scalZlecenie: to samo pole na tę samą wartość – bez konfliktu", () => {
+  const baza = { data: "2030-01-15", status: "Zlecone" };
+  const s = scalZlecenie(baza, { ...baza, status: "Odebrane" }, { ...baza, status: "Odebrane" });
+  assert.deepEqual(s.konflikty, []);
+});
