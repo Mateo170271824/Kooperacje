@@ -19,7 +19,7 @@
 html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
 [hidden]{display:none!important}
-.wrap{max-width:1480px;margin:0 auto;padding-block:18px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+.wrap{max-width:none;margin:0 auto;padding-block:18px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
 header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
 h1{font-family:var(--f-display);font-weight:700;font-size:27px;letter-spacing:.01em;margin:0;text-wrap:balance}
 h2{font-family:var(--f-display);font-weight:600;font-size:17px;margin:0;letter-spacing:.01em}
