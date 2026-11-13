@@ -15,7 +15,7 @@ import { $, MIES } from './czesci/stale.js?v=3';
 /* ===== Firebase – ten sam projekt co Truck App; konfiguracja, login i tryb emulatora (?emu na localhost)
    ze wspólnego modułu SteelFlow (js/steelflow-konto.js, kopia z repo Logistyka) ===== */
 export const SDK = { initializeApp, auth: FA, firestore: FF };
-export const POL = polacz(SDK, { emuPort: 8085 });
+export const POL = polacz(SDK, { emuPort: 8085, offline: true });   // dane w urządzeniu – przeglądanie bez internetu
 export const auth = POL.auth, db = POL.db;
 
 export const C = { z:"koop_zlecenia", p:"koop_podwykonawcy", u:"koop_ustawienia", kosz:"koop_kosz", v:"koop_wartosci", k:"koop_koszty" };
