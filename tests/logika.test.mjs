@@ -182,3 +182,31 @@ test("scalZlecenie: to samo pole na tę samą wartość – bez konfliktu", () =
   const s = scalZlecenie(baza, { ...baza, status: "Odebrane" }, { ...baza, status: "Odebrane" });
   assert.deepEqual(s.konflikty, []);
 });
+
+test("statusy: bez „Zlecone”, data odbioru ustawia status", () => {
+  assert.equal(L.STATUSY.includes("Zlecone"), false);
+  assert.equal(L.STATUSY[0], "W realizacji");
+  assert.equal(L.normStatus("Zlecone"), "W realizacji");
+  assert.equal(L.normStatus(""), "W realizacji");
+  assert.equal(L.normStatus("Gotowe do odbioru"), "Gotowe do odbioru");
+  // wpisana data → Odebrane
+  assert.equal(L.statusPoDacie("W realizacji", "2026-11-14"), "Odebrane");
+  assert.equal(L.statusPoDacie("Gotowe do odbioru", "2026-11-14"), "Odebrane");
+  // skasowana data → poprzedni status
+  assert.equal(L.statusPoDacie("Odebrane", "", "Gotowe do odbioru"), "Gotowe do odbioru");
+  assert.equal(L.statusPoDacie("Odebrane", "", "Zlecone"), "W realizacji");
+  assert.equal(L.statusPoDacie("Odebrane", ""), "W realizacji");
+  // anulowane zostaje anulowane
+  assert.equal(L.statusPoDacie("Anulowane", "2026-11-14"), "Anulowane");
+  // stare „Zlecone” bez zmian = brak zmiany w historii
+  const z = { data: "2026-11-10", podw: "p1", nr: "A1", status: "Zlecone" };
+  assert.deepEqual(L.diff(z, { ...z, status: "W realizacji" }), {});
+  assert.equal(L.scalZlecenie(z, { ...z }, { ...z, nr: "A2" }).wynik.status, "W realizacji");
+});
+
+test("z naszego materiału w historii zmian", () => {
+  const z = { data: "2026-11-10", podw: "p1", nr: "A1", status: "W realizacji" };
+  assert.deepEqual(L.diff(z, { ...z, naszMat: false }), {});            // stare zlecenie bez pola = nie
+  assert.deepEqual(L.diff(z, { ...z, naszMat: true }), { naszMat: [false, true] });
+  assert.equal(L.POLA_NAZWY.naszMat, "z naszego materiału");
+});

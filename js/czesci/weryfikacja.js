@@ -3,11 +3,11 @@
 
 import { doc, serverTimestamp, writeBatch, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { today, fD, fDs, dniMiedzy, esc, plural, projOf, normTxt, cellDate, cellNum, matchSup as matchSupL, dopasujPZ, idKosztu } from "../logika.js?v=2";
+import { today, fD, fDs, dniMiedzy, esc, plural, projOf, normTxt, cellDate, cellNum, matchSup as matchSupL, dopasujPZ, idKosztu } from "../logika.js?v=3";
 
-import { C, KO, P, PROJ, Z, byDate, db, fTs, failed, me, supColor, supName, toast, verMonth } from '../app.js?v=3';
-import { $ } from './stale.js?v=3';
-import { kw, loadXlsx, miesNazwa, r2, saveBlob, zl2 } from './pliki.js?v=3';
+import { C, KO, P, PROJ, Z, byDate, db, fTs, failed, me, supColor, supName, toast, verMonth } from '../app.js?v=4';
+import { $ } from './stale.js?v=4';
+import { kw, loadXlsx, miesNazwa, r2, saveBlob, zl2 } from './pliki.js?v=4';
 
 /* ---------- weryfikacja kosztów z pliku przyjęć na magazyn ---------- */
 export const VER={plik:"",rows:[],months:[],ym:"",manual:{},res:null};

@@ -2,11 +2,11 @@
 
 
 
-import { iso, today, addD, fD, fDs, dniMiedzy, esc, plural, projOf, normTxt, kodProjektu } from "../logika.js?v=2";
+import { iso, today, addD, fD, fDs, dniMiedzy, esc, plural, projOf, normTxt, kodProjektu } from "../logika.js?v=3";
 
-import { KO, Z, byDate, canSeeAmounts, failed, me, pill, sortedP, supColor, supName, toast, zId } from '../app.js?v=3';
-import { $, MIES } from './stale.js?v=3';
-import { PDF_BLUE, fStyle, hStyle, kw, loadXlsx, logoData, miesNazwa, newPdf, nowStamp, pct, pdfFooter, pdfHeader, pdfPie, pieParts, r2, safeName, saveBlob, tStyle, tsIso, zl2 } from './pliki.js?v=3';
+import { KO, Z, byDate, canSeeAmounts, failed, me, pill, sortedP, supColor, supName, toast, zId } from '../app.js?v=4';
+import { $, MIES } from './stale.js?v=4';
+import { PDF_BLUE, fStyle, hStyle, kw, loadXlsx, logoData, miesNazwa, newPdf, nowStamp, pct, pdfFooter, pdfHeader, pdfPie, pieParts, r2, safeName, saveBlob, tStyle, tsIso, zl2 } from './pliki.js?v=4';
 
 /* ---------- raporty kwot: grupowanie, zestawienia projektów, Excel, PDF ---------- */
 export const R={period:"month", year:new Date().getFullYear(), slice:new Date().getMonth()+1, od:"", do:"", group:"podw", sup:"", open:new Set(), proj:""};
