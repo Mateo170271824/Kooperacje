@@ -3,7 +3,7 @@
 // • biblioteki z zewnątrz (Firebase z gstatic, cdnjs, czcionki Google): z pamięci – mają wersję w adresie, więc się nie zmieniają,
 // • baza danych (Firestore) obsługuje się sama – dane są w pamięci przeglądarki (tryb offline we wspólnym module).
 // Wzór: repo Logistyka, wspolne/sw-wzor.js (kopiuje node wspolne/kopiuj.mjs, z nazwą pamięci modułu).
-const CACHE = "kooperacje-v2";
+const CACHE = "kooperacje-v3";
 const ZEWN = /^https:\/\/(www\.gstatic\.com\/firebasejs\/|cdnjs\.cloudflare\.com\/ajax\/libs\/|fonts\.googleapis\.com\/|fonts\.gstatic\.com\/)/;
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => e.waitUntil((async () => {

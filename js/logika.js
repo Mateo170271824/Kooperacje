@@ -17,9 +17,21 @@ export const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&l
 export const plural = (n,a,b,c) => n===1?a:(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?b:c;
 
 /* ---------- zlecenia ---------- */
-export const STATUSY = ["Zlecone","W realizacji","Gotowe do odbioru","Odebrane","Anulowane"];
-export const POLA = ["data","podw","nr","projekt","opis","rodzaj","ilosc","status","odebrano","uwagi","doLog"];
-export const POLA_NAZWY = {data:"data odbioru",podw:"podwykonawca",nr:"nr zlecenia / projekt",projekt:"projekt",opis:"opis",rodzaj:"rodzaj",ilosc:"ilość",status:"status",odebrano:"odebrano dnia",uwagi:"uwagi",doLog:"do logistyki"};
+// Status „Zlecone” usunięty: nowe zlecenia startują od „W realizacji”, stare „Zlecone” traktujemy jak „W realizacji”.
+export const STATUS_START = "W realizacji";
+export const STATUSY = [STATUS_START,"Gotowe do odbioru","Odebrane","Anulowane"];
+export const normStatus = s => (!s || s==="Zlecone") ? STATUS_START : s;
+// data w „Odebrano dnia” ustawia status: jest data → „Odebrane”, skasowana → poprzedni status; „Anulowane” zostaje
+export function statusPoDacie(status, odebrano, poprzedni){
+  const st=normStatus(status);
+  if(st==="Anulowane") return st;
+  if(odebrano) return "Odebrane";
+  if(st==="Odebrane"){ const p=normStatus(poprzedni); return p==="Odebrane"||p==="Anulowane"? STATUS_START : p; }
+  return st;
+}
+export const POLA = ["data","podw","nr","projekt","opis","rodzaj","ilosc","status","odebrano","uwagi","doLog","naszMat"];
+const POLA_TAK_NIE = ["doLog","naszMat"];
+export const POLA_NAZWY = {data:"data odbioru",podw:"podwykonawca",nr:"nr zlecenia / projekt",projekt:"projekt",opis:"opis",rodzaj:"rodzaj",ilosc:"ilość",status:"status",odebrano:"odebrano dnia",uwagi:"uwagi",doLog:"do logistyki",naszMat:"z naszego materiału"};
 export const closed = z => z.status==="Odebrane" || z.status==="Anulowane";
 export const projOf = z => String(z.projekt||z.nr||"").trim();
 // kod projektu do wspólnego słownika (Truck App, Kooperacje, Zapytania, Kombajn): wielkie litery, pojedyncze spacje
@@ -35,7 +47,8 @@ export function alertOf(z, t=today()){
 // zmienione pola zlecenia: {pole: [stare, nowe]} (do historii i do kursu)
 export function diff(cur, next){
   const out={};
-  for(const k of POLA){ const a=k==="doLog"? !!cur?.[k] : cur?.[k]??"", b=k==="doLog"? !!next[k] : next[k]??""; if(String(a)!==String(b)) out[k]=[a,b]; }
+  const w=(o,k)=> POLA_TAK_NIE.includes(k)? !!o?.[k] : k==="status"? (o? normStatus(o[k]) : "") : o?.[k]??"";
+  for(const k of POLA){ const a=w(cur,k), b=w(next,k); if(String(a)!==String(b)) out[k]=[a,b]; }
   return out;
 }
 
@@ -47,6 +60,7 @@ export function scalZlecenie(baza, ich, moje){
   const konflikty = Object.keys(mojeZm).filter(k => k in ichZm && String(ichZm[k][1]) !== String(mojeZm[k][1]));
   const wynik = {};
   for(const k of POLA) wynik[k] = (k in mojeZm) ? moje[k] : (ich && k in ich ? ich[k] : moje[k]);
+  wynik.status = normStatus(wynik.status);
   return { wynik, konflikty, mojeZm, ichZm };
 }
 

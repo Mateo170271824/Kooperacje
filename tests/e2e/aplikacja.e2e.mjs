@@ -39,6 +39,7 @@ await baza(async db => {
   await s("koop_podwykonawcy/p2", { nazwa: "Podwykonawca B", kolor: 1, kolejnosc: 2 });
   await s("koop_ustawienia/slowniki", { rodzaje: ["Kątowniki", "Obróbki", "Inne"] });
   await s("koop_zlecenia/stare", { data: "2030-01-15", podw: "p1", nr: "STEC", projekt: "STEC", opis: "Stare zlecenie", status: "Zlecone", wersja: 1 });
+  await s("koop_zlecenia/zl", { data: "2030-01-20", podw: "p2", nr: "ZL-1", opis: "Status Zlecone", status: "Zlecone", wersja: 1 });
   await s("koop_zlecenia/scal", { data: "2030-02-10", podw: "p1", nr: "SC-1", projekt: "STEC", opis: "Do łączenia zmian", status: "Zlecone", wersja: 1 });
 });
 // arkusz z podwykonawcami (wymyślony)
@@ -124,6 +125,29 @@ try {
   ok("odznaczenie anuluje kurs i go odpina", (await kursy()).find(x => x.id === k6.id).status === "Anulowane" && (await dok("koop_zlecenia", "stare")).kursId === "");
   // wszystkie zakładki rysują się bez błędów; plan tygodnia jako PDF
   for (const t of ["pulpit", "kalendarz", "tydzien", "podwykonawcy", "zlecenia"]) { await zakladka(p, t); ok("zakładka " + t, await p.isVisible("#v-" + t)); }
+  // statusy bez „Zlecone”, data odbioru ustawia status, „Z naszego materiału”
+  ok("stare „Zlecone” na liście jako „W realizacji”", /W realizacji/.test(await wiersz(p, "Status Zlecone").first().textContent()));
+  ok("filtr statusów bez „Zlecone”", !(await p.$$eval("#zStatus option", o => o.map(x => x.textContent))).includes("Zlecone"));
+  await otworz(p, "Status Zlecone");
+  ok("formularz: stare „Zlecone” jako „W realizacji”, bez opcji „Zlecone”", (await p.inputValue("#z_status")) === "W realizacji" && !(await p.$$eval("#z_status option", o => o.map(x => x.textContent))).includes("Zlecone"));
+  await p.selectOption("#z_status", "Gotowe do odbioru");
+  await p.fill("#z_odebrano", "2030-01-20"); await p.dispatchEvent("#z_odebrano", "change");
+  const poDacie = await p.inputValue("#z_status");
+  await p.fill("#z_odebrano", ""); await p.dispatchEvent("#z_odebrano", "change");
+  ok("data odbioru → „Odebrane”, skasowana → poprzedni status", poDacie === "Odebrane" && (await p.inputValue("#z_status")) === "Gotowe do odbioru", poDacie + " / " + await p.inputValue("#z_status"));
+  await p.selectOption("#z_status", "Anulowane"); await p.fill("#z_odebrano", "2030-01-20"); await p.dispatchEvent("#z_odebrano", "change");
+  ok("anulowane zostaje anulowane mimo daty", (await p.inputValue("#z_status")) === "Anulowane");
+  await p.selectOption("#z_status", "W realizacji"); await p.fill("#z_odebrano", "2030-01-21"); await p.dispatchEvent("#z_odebrano", "change");
+  await p.check("#z_naszmat"); await p.click("#zSave"); await toast(p);
+  const zl = await dok("koop_zlecenia", "zl");
+  ok("zapis: Odebrane z datą, z naszego materiału", zl.status === "Odebrane" && zl.odebrano === "2030-01-21" && zl.naszMat === true && zl.statusPrzed === "W realizacji", JSON.stringify({ s: zl.status, o: zl.odebrano, m: zl.naszMat, p: zl.statusPrzed }));
+  await p.check("#zClosed"); await p.waitForTimeout(200);
+  ok("lista: znaczek „nasz materiał”", /nasz materiał/.test(await wiersz(p, "Status Zlecone").first().textContent()));
+  await p.selectOption("#zMat", "nasz"); await p.waitForTimeout(200);
+  const tylkoNasz = await p.locator("#zRows tr").count();
+  await p.selectOption("#zMat", "ich"); await p.waitForTimeout(200);
+  ok("filtr „Z naszego materiału”", tylkoNasz === 1 && (await wiersz(p, "Status Zlecone").count()) === 0, "nasz: " + tylkoNasz);
+  await p.selectOption("#zMat", ""); await p.uncheck("#zClosed"); await p.waitForTimeout(200);
   await zakladka(p, "tydzien");
   for (let i = 0; i < 400 && !(await p.textContent("#wkTitle")).includes("11.01.2030"); i++) await p.click("#wkNext");
   await p.selectOption("#wkShow", "all");

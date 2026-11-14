@@ -3,11 +3,11 @@
 
 import { doc, runTransaction, serverTimestamp, getDoc, writeBatch, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { normLogin, today, pd, isoWeek, fD, esc, projOf, kursZamkniety, podwykonawcyZArkusza } from "../logika.js?v=2";
+import { normLogin, today, pd, isoWeek, fD, esc, projOf, kursZamkniety, podwykonawcyZArkusza } from "../logika.js?v=3";
 
-import { C, DNI_K, KR, P, RODZAJE_DOMYSLNE, Z, alertOf, byDate, canSeeAmounts, db, fTs, failed, me, rodzaje, rodzajeZapisane, sup, supName, toast } from '../app.js?v=3';
-import { $ } from './stale.js?v=3';
-import { kw, loadXlsx, saveBlob } from './pliki.js?v=3';
+import { C, DNI_K, KR, P, RODZAJE_DOMYSLNE, Z, alertOf, byDate, canSeeAmounts, db, fTs, failed, me, rodzaje, rodzajeZapisane, sup, supName, toast } from '../app.js?v=4';
+import { $ } from './stale.js?v=4';
+import { kw, loadXlsx, saveBlob } from './pliki.js?v=4';
 
 /* ---------- podwykonawcy / rodzaje (administrator) ---------- */
 export let sId=null;
@@ -107,11 +107,11 @@ $("seedFile").onchange=async e=>{
 export async function exportCsv(){
   try{
     await loadXlsx(); const X=window.XLSX, kwoty=canSeeAmounts();
-    const head=["Data odbioru","Dzień","Tydz.","Podwykonawca","Nr / projekt","Element / opis","Rodzaj","Ilość [szt]",...(kwoty?["Wartość [zł]"]:[]),"Status","Odebrano dnia","Alert","Uwagi","Dodał","Dodano","Ostatnio zmienił","Zmieniono"];
-    const rows=Z.slice().sort(byDate).map(z=>[fD(z.data), z.data?DNI_K[pd(z.data).getDay()]:"", z.data?isoWeek(z.data):"", supName(z.podw), projOf(z), z.opis||"", z.rodzaj||"", z.ilosc??"",...(kwoty?[kw(z.id)??""]:[]), z.status, fD(z.odebrano), alertOf(z)?.[0]||"", z.uwagi||"", z.utworzylNazwa||"", fTs(z.utworzono), z.zmienilNazwa||"", fTs(z.zmieniono)]);
+    const head=["Data odbioru","Dzień","Tydz.","Podwykonawca","Nr / projekt","Element / opis","Rodzaj","Ilość [szt]","Z naszego materiału",...(kwoty?["Wartość [zł]"]:[]),"Status","Odebrano dnia","Alert","Uwagi","Dodał","Dodano","Ostatnio zmienił","Zmieniono"];
+    const rows=Z.slice().sort(byDate).map(z=>[fD(z.data), z.data?DNI_K[pd(z.data).getDay()]:"", z.data?isoWeek(z.data):"", supName(z.podw), projOf(z), z.opis||"", z.rodzaj||"", z.ilosc??"", z.naszMat?"Tak":"",...(kwoty?[kw(z.id)??""]:[]), z.status, fD(z.odebrano), alertOf(z)?.[0]||"", z.uwagi||"", z.utworzylNazwa||"", fTs(z.utworzono), z.zmienilNazwa||"", fTs(z.zmieniono)]);
     const ws=X.utils.aoa_to_sheet([head,...rows]);
     ws["!cols"]=head.map(h=>({wch:/opis|Uwagi/.test(h)?30:h.length<8?8:16}));
-    if(kwoty) for(let r=1;r<=rows.length;r++){ const c=ws[X.utils.encode_cell({r,c:8})]; if(c&&c.t==="n") c.z='#,##0.00 "zł"'; }
+    if(kwoty) for(let r=1;r<=rows.length;r++){ const c=ws[X.utils.encode_cell({r,c:9})]; if(c&&c.t==="n") c.z='#,##0.00 "zł"'; }
     const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Zlecenia");
     saveBlob(`kooperacje-${today()}.xlsx`, new Blob([X.write(wb,{bookType:"xlsx",type:"array"})],{type:"application/octet-stream"}));
     toast("Pobrano listę zleceń w Excelu");

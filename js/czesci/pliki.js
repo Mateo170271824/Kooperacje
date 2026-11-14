@@ -2,10 +2,10 @@
 
 
 
-import { iso, fD } from "../logika.js?v=2";
+import { iso, fD } from "../logika.js?v=3";
 
-import { V, toast, tsDate } from '../app.js?v=3';
-import { MIES } from './stale.js?v=3';
+import { V, toast, tsDate } from '../app.js?v=4';
+import { MIES } from './stale.js?v=4';
 
 /* ---------- wspólne: biblioteki, pliki, kwoty, projekty ---------- */
 export const loadScript = src => new Promise((ok,err)=>{ const s=document.createElement("script"); s.src=src; s.onload=ok; s.onerror=()=>err(new Error("Nie udało się wczytać "+src)); document.head.appendChild(s); });

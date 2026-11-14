@@ -4,13 +4,13 @@ import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/
 import * as FF from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { collection, doc, onSnapshot, runTransaction, serverTimestamp, getDocs, query, where, orderBy, limit, writeBatch, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { normLogin, iso, today, pd, addD, monday, isoWeek, fD, fDs, dniMiedzy, esc, plural, STATUSY, POLA, POLA_NAZWY, closed, projOf, alertOf as alertDnia, diff, kodProjektu, kursZamkniety, nowyKurs as nowyKursL, zmianyKursu as zmianyKursuL, rodzajZmianyKursu, kursStan as kursStanL, scalZlecenie } from "./logika.js?v=2";
+import { normLogin, iso, today, pd, addD, monday, isoWeek, fD, fDs, dniMiedzy, esc, plural, STATUSY, STATUS_START, normStatus, statusPoDacie, POLA, POLA_NAZWY, closed, projOf, alertOf as alertDnia, diff, kodProjektu, kursZamkniety, nowyKurs as nowyKursL, zmianyKursu as zmianyKursuL, rodzajZmianyKursu, kursStan as kursStanL, scalZlecenie } from "./logika.js?v=3";
 import { polacz, zaloguj, komunikat, dostepBiura } from "./steelflow-konto.js?v=2";
-import { hStyle, kw, miesNazwa, natywna, newPdf, nowStamp, pdfFooter, pdfHeader, saveBlob, tStyle } from './czesci/pliki.js?v=3';
-import { exportCsv, openS, saveRodz } from './czesci/podwykonawcy.js?v=3';
-import { renderRaporty, resolveProject } from './czesci/raporty.js?v=3';
-import { VER, WER, renderVer, ustawWER } from './czesci/weryfikacja.js?v=3';
-import { $, MIES } from './czesci/stale.js?v=3';
+import { hStyle, kw, miesNazwa, natywna, newPdf, nowStamp, pdfFooter, pdfHeader, saveBlob, tStyle } from './czesci/pliki.js?v=4';
+import { exportCsv, openS, saveRodz } from './czesci/podwykonawcy.js?v=4';
+import { renderRaporty, resolveProject } from './czesci/raporty.js?v=4';
+import { VER, WER, renderVer, ustawWER } from './czesci/weryfikacja.js?v=4';
+import { $, MIES } from './czesci/stale.js?v=4';
 
 /* ===== Firebase – ten sam projekt co Truck App; konfiguracja, login i tryb emulatora (?emu na localhost)
    ze wspólnego modułu SteelFlow (js/steelflow-konto.js, kopia z repo Logistyka) ===== */
@@ -44,8 +44,10 @@ export const sup = id => P.find(p=>p.id===id);
 export const supName = id => sup(id)?.nazwa || "—";
 export const supColor = id => `var(--c${sup(id)?.kolor ?? 7})`;
 export const alertOf = z => alertDnia(z, today());
-export const stClass = s => "st-"+String(s||"Zlecone").split(" ")[0];
-export const pill = s => `<span class="pill ${stClass(s)}">${esc(s||"Zlecone")}</span>`;
+export const stClass = s => "st-"+String(normStatus(s)).split(" ")[0];
+export const pill = s => `<span class="pill ${stClass(s)}">${esc(normStatus(s))}</span>`;
+// „Z naszego materiału”: materiał wysyłamy podwykonawcy
+export const matTag = (z, krotko) => z.naszMat? ` <span class="mat" title="Z naszego materiału – materiał wysyłamy podwykonawcy">${krotko?"mat.":"nasz materiał"}</span>` : "";
 export const byDate = (a,b) => (a.data||"9").localeCompare(b.data||"9") || supName(a.podw).localeCompare(supName(b.podw),"pl");
 export const sortedP = () => P.slice().sort((a,b)=>(a.kolejnosc??99)-(b.kolejnosc??99)||String(a.nazwa).localeCompare(String(b.nazwa),"pl"));
 
@@ -66,7 +68,7 @@ setTab((location.hash||"").slice(1));
 export let calMonth = today().slice(0,7), calSup="", calDone=true, calSel="";
 export const narrow = () => matchMedia("(max-width:700px)").matches;
 export let wkStart = monday(today()), wkSup="", wkShow="open";
-export let zSup="", zStatus="", zQ="", zClosed=false;
+export let zSup="", zStatus="", zQ="", zClosed=false, zMat="";
 export function fillSupSelect(el, val){ el.innerHTML = `<option value="">Wszyscy podwykonawcy</option>`+sortedP().map(p=>`<option value="${p.id}" ${p.id===val?"selected":""}>${esc(p.nazwa)}</option>`).join(""); }
 
 export function render(){
@@ -147,7 +149,7 @@ export function renderPulpit(){
   const next=open.slice().sort(byDate).slice(0,20);
   $("pNext").innerHTML=next.map(z=>{const a=alertOf(z); return `<tr class="click ${a&&a[1]==="alert-late"?"late":""}" data-z="${z.id}">
     <td class="mono">${fD(z.data)}</td><td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td>
-    <td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${pill(z.status)}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td><td class="small uw">${esc(z.uwagi)}</td><td>${quickBtns(z)}</td></tr>`;}).join("");
+    <td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}${matTag(z)}</td><td>${pill(z.status)}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td><td class="small uw">${esc(z.uwagi)}</td><td>${quickBtns(z)}</td></tr>`;}).join("");
   const more=open.length-next.length, pe=$("pNextEmpty");
   if(!open.length){ pe.hidden=false; pe.innerHTML=`<strong>Brak otwartych zleceń</strong><span>Dodaj zlecenie przyciskiem „Nowe zlecenie” albo kliknij dzień w kalendarzu.</span>`; }
   else if(more>0){ pe.hidden=false; pe.innerHTML=`<span>… i jeszcze ${more} – pełna lista w zakładce Zlecenia</span>`; }
@@ -181,7 +183,7 @@ export function renderPulpit(){
 export function evHtml(z, showDate){
   const a=alertOf(z), late=a&&a[1]==="alert-late";
   const label=[z.nr, z.opis].filter(Boolean).join(" · ") || z.rodzaj || "zlecenie";
-  return `<button type="button" class="ev ${late?"late":""} ${closed(z)?"done":""}" data-z="${z.id}" style="--c:${supColor(z.podw)}" title="${esc(supName(z.podw))} · ${esc(z.status)}">${showDate?`<span class="we">${DNI_K[pd(z.data).getDay()]} ${fDs(z.data)} · </span>`:""}${esc(label)}</button>`;
+  return `<button type="button" class="ev ${late?"late":""} ${closed(z)?"done":""}" data-z="${z.id}" style="--c:${supColor(z.podw)}" title="${esc(supName(z.podw))} · ${esc(z.status)}">${showDate?`<span class="we">${DNI_K[pd(z.data).getDay()]} ${fDs(z.data)} · </span>`:""}${esc(label)}${matTag(z,true)}</button>`;
 }
 export function renderCal(){
   fillSupSelect($("calSup"), calSup);
@@ -204,7 +206,7 @@ export function renderCal(){
       evs.sort(byDate);
       const n=evs.length; byDay[day]=evs;
       // telefon: do 2 pasków ze skrótem podwykonawcy, reszta jako „+n”
-      const dots=evs.slice(0,2).map(z=>{const a=alertOf(z); return `<em class="chipn ${a&&a[1]==="alert-late"?"late":""}" style="--c:${supColor(z.podw)}">${esc(supName(z.podw).split(/[-\s]/)[0].slice(0,5))}</em>`;}).join("")+(n>2?`<em class="chipn more">+${n-2}</em>`:"");
+      const dots=evs.slice(0,2).map(z=>{const a=alertOf(z); return `<em class="chipn ${a&&a[1]==="alert-late"?"late":""}" style="--c:${supColor(z.podw)}">${esc(supName(z.podw).split(/[-\s]/)[0].slice(0,5))}${z.naszMat?" ◆":""}</em>`;}).join("")+(n>2?`<em class="chipn more">+${n-2}</em>`:"");
       h+=`<div class="day ${inM?"":"out"} ${day===t?"today":""} ${day===calSel?"sel":""} ${n?"":"blank"}" data-day="${day}" tabindex="0" aria-label="${DNI[pd(day).getDay()]} ${fD(day)}, zleceń: ${n}">
         <div class="dn"><b class="num">${+day.slice(8)}${day.slice(8)==="01"||(!inM&&day===addD(d,0))?`<small>${MIES_K[+day.slice(5,7)-1]}</small>`:""}</b><span class="cnt">${n? n+" "+(n===1?"zlecenie":(n<5?"zlecenia":"zleceń")):""}</span></div>
         <div class="dots">${dots}</div>
@@ -217,11 +219,11 @@ export function renderCal(){
   const nm=DNI[pd(calSel).getDay()];
   const zc=z=>{ const a=alertOf(z), late=a&&a[1]==="alert-late";
     return `<button type="button" class="zc ${late?"late":""} ${closed(z)?"done":""}" data-z="${z.id}" style="--c:${supColor(z.podw)}"><span class="bar"></span>
-      <span><span class="sup">${esc(supName(z.podw))}${z.data!==calSel?` · ${DNI_K[pd(z.data).getDay()]} ${fDs(z.data)}`:""}</span><span class="t">${esc([z.nr,z.opis].filter(Boolean).join(" · ")||z.rodzaj||"zlecenie")}</span>${z.rodzaj||z.ilosc?`<span class="m">${esc([z.rodzaj, z.ilosc!=null&&z.ilosc!==""?z.ilosc+" szt.":""].filter(Boolean).join(" · "))}</span>`:""}</span>${pill(z.status)}</button>`; };
+      <span><span class="sup">${esc(supName(z.podw))}${z.data!==calSel?` · ${DNI_K[pd(z.data).getDay()]} ${fDs(z.data)}`:""}</span><span class="t">${esc([z.nr,z.opis].filter(Boolean).join(" · ")||z.rodzaj||"zlecenie")}</span>${z.rodzaj||z.ilosc||z.naszMat?`<span class="m">${esc([z.rodzaj, z.ilosc!=null&&z.ilosc!==""?z.ilosc+" szt.":""].filter(Boolean).join(" · "))}${matTag(z)}</span>`:""}</span>${pill(z.status)}</button>`; };
   $("calDay").innerHTML=`<div class="row"><h3>${nm[0].toUpperCase()+nm.slice(1)}, ${+calSel.slice(8)} ${MIES_D[+calSel.slice(5,7)-1]}</h3><span class="small">${se.length? se.length+" "+(se.length===1?"zlecenie":(se.length<5?"zlecenia":"zleceń")):""}</span></div>`+
     (se.length? se.map(zc).join("") : `<div class="empty">Brak odbiorów w tym dniu</div>`)+
     (canWrite?`<button type="button" class="btn primary addbig" data-add="${calSel}">+ Dodaj zlecenie na ten dzień</button>`:"");
-  $("calLegend").innerHTML=sortedP().map(p=>`<span><span class="sw" style="background:var(--c${p.kolor??7})"></span>${esc(p.nazwa)}</span>`).join("")+`<span style="color:var(--bad);font-weight:600">Po terminie = czerwony tekst</span>`;
+  $("calLegend").innerHTML=sortedP().map(p=>`<span><span class="sw" style="background:var(--c${p.kolor??7})"></span>${esc(p.nazwa)}</span>`).join("")+`<span style="color:var(--bad);font-weight:600">Po terminie = czerwony tekst</span><span><span class="mat">mat.</span> / ◆ = z naszego materiału</span>`;
 }
 
 export function renderWeek(){
@@ -234,7 +236,7 @@ export function renderWeek(){
     if(z.data!==cur){ cur=z.data; h+=`<tr class="dayhead"><td colspan="${canSeeAmounts()?10:9}">${DNI[pd(cur).getDay()]} ${fD(cur)}</td></tr>`; }
     const a=alertOf(z);
     h+=`<tr class="click ${a&&a[1]==="alert-late"?"late":""} ${closed(z)?"closed":""}" data-z="${z.id}"><td class="small">${DNI_K[pd(z.data).getDay()]}</td>
-      <td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td>
+      <td><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}${matTag(z)}</td><td>${esc(z.rodzaj)}</td>
       <td class="num">${z.ilosc??""}</td>${canSeeAmounts()?`<td class="num">${moneyText(V[z.id]?.wartosc)}</td>`:""}<td>${pill(z.status)}</td><td class="small uw">${esc(z.uwagi)}</td><td>${quickBtns(z)}</td></tr>`;
   }
   $("thWkWartosc").hidden=!canSeeAmounts();
@@ -257,7 +259,7 @@ export function planText(list, p){
   const lines=[`Plan odbiorów – tydzień ${isoWeek(wkStart)} (${fDs(wkStart)} – ${fD(addD(wkStart,4))})${p?" – "+p.nazwa:""}`,""]; let cur="";
   for(const z of list){
     if(z.data!==cur){ cur=z.data; const dn=DNI[pd(cur).getDay()]; lines.push((lines.length>2?"\n":"")+dn[0].toUpperCase()+dn.slice(1)+" "+fD(cur)+":"); }
-    lines.push("- "+[p?null:supName(z.podw), z.nr, (z.opis||"").replace(/\s*\n\s*/g," / "), z.ilosc?z.ilosc+" szt":null].filter(Boolean).join(" – ")+(z.status&&z.status!=="Zlecone"?` [${z.status}]`:"")+(z.uwagi?` (${z.uwagi})`:""));
+    lines.push("- "+[p?null:supName(z.podw), z.nr, (z.opis||"").replace(/\s*\n\s*/g," / "), z.ilosc?z.ilosc+" szt":null].filter(Boolean).join(" – ")+(z.naszMat?" – z naszego materiału (materiał od nas)":"")+(normStatus(z.status)!==STATUS_START?` [${normStatus(z.status)}]`:"")+(z.uwagi?` (${z.uwagi})`:""));
   }
   return lines.join("\n");
 }
@@ -270,13 +272,15 @@ export function renderZ(){
   $("thWartosc").hidden=!canSeeAmounts();
   $("zStatus").innerHTML=`<option value="">Każdy status</option>`+STATUSY.map(s=>`<option ${s===zStatus?"selected":""}>${s}</option>`).join("");
   const q=zQ.trim().toLowerCase();
+  $("zMat").value=zMat;
   let list=Z.filter(z=>(!zSup||z.podw===zSup) && (!zStatus||z.status===zStatus) && (zClosed||zStatus||!closed(z)) &&
+    (!zMat || (zMat==="nasz")===!!z.naszMat) &&
     (!q||[z.nr,z.opis,z.uwagi,z.rodzaj].join(" ").toLowerCase().includes(q))).sort(byDate);
   if(zNoAmt){ const ids=new Set(bezKwoty().map(z=>z.id)); list=list.filter(z=>ids.has(z.id)); }
   $("zNoAmtChip").hidden=!zNoAmt;
   $("zRows").innerHTML=list.map(z=>{const a=alertOf(z); return `<tr class="click ${a&&a[1]==="alert-late"?"late":""} ${closed(z)?"closed":""}" data-z="${z.id}">
     <td style="white-space:nowrap"><span class="mono">${fD(z.data)}</span>${z.data?`<br><span class="small">${DNI_K[pd(z.data).getDay()]} · tydz. ${isoWeek(z.data)}</span>`:""}</td>
-    <td style="white-space:nowrap"><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}</td><td>${esc(z.rodzaj)}</td>
+    <td style="white-space:nowrap"><span class="sw" style="background:${supColor(z.podw)}"></span>${esc(supName(z.podw))}</td><td class="mono">${esc(z.nr)}</td><td>${esc(z.opis)}${matTag(z)}</td><td>${esc(z.rodzaj)}</td>
     <td class="num">${z.ilosc??""}</td>${canSeeAmounts()?`<td class="num">${moneyText(V[z.id]?.wartosc)}</td>`:""}<td>${pill(z.status)}${z.odebrano?`<br><span class="small">odebr. ${fDs(z.odebrano)}</span>`:""}${kursTag(z)}</td><td>${a?`<span class="${a[1]}">${a[0]}</span>`:""}</td><td class="small uw">${esc(z.uwagi)}</td>
     <td class="small" style="white-space:nowrap">${esc(z.zmienilNazwa||"")}<br>${fTs(z.zmieniono)}</td>
     <td>${quickBtns(z)}</td></tr>`;}).join("");
@@ -325,7 +329,7 @@ export async function weekPdf(){
     const y=pdfHeader(d,{title:"Odbiory z kooperacji · tydzień "+isoWeek(wkStart),okres:`${fDs(wkStart)} – ${fD(dni[4])}`,
       sub:`${wkSup?supName(wkSup):"wszyscy podwykonawcy"} · ${list.length} ${plural(list.length,"odbiór","odbiory","odbiorów")}`,meta:["Wydrukował: "+(me.nazwa||me.login),"Data: "+fD(today())]});
     const body=list.map(z=>[DNI_K[pd(z.data).getDay()]+" "+fDs(z.data), supName(z.podw), [projOf(z),z.opis].filter(Boolean).join(" · "),
-      [z.ilosc!=null&&z.ilosc!==""?z.ilosc+" szt.":"",z.rodzaj].filter(Boolean).join(" · "), z.status+(z.uwagi?"\n"+z.uwagi:""), ""]);
+      [z.ilosc!=null&&z.ilosc!==""?z.ilosc+" szt.":"",z.rodzaj,z.naszMat?"z naszego materiału":""].filter(Boolean).join(" · "), normStatus(z.status)+(z.uwagi?"\n"+z.uwagi:""), ""]);
     d.autoTable({head:[["Dzień","Podwykonawca","Projekt / element","Ilość / rodzaj","Status / uwagi","✓"]],body:body.length?body:[["","brak odbiorów w tym tygodniu","","","",""]],startY:y,styles:tStyle,headStyles:hStyle,
       columnStyles:{0:{cellWidth:18},5:{cellWidth:8}},alternateRowStyles:{fillColor:[243,247,252]},margin:{left:14,right:14,bottom:16}});
     pdfFooter(d,"Kooperacje · plan odbiorów · "+nowStamp());
@@ -337,7 +341,7 @@ export function printWeek(){
   const dni=[0,1,2,3,4].map(i=>addD(wkStart,i));
   const list=weekList();
   const it=z=>{ const we=z.data>dni[4]? (pd(z.data).getDay()===6?"Sob: ":"Nd: ") : "";
-    return `<div class="pp-it"><b><span class="pp-box"></span>${esc(we+supName(z.podw))}</b><span>${esc([projOf(z),z.opis].filter(Boolean).join(" · "))}</span><small>${esc([z.ilosc!=null&&z.ilosc!==""?z.ilosc+" szt.":"",z.rodzaj].filter(Boolean).join(" · "))}${z.status==="Gotowe do odbioru"?" · gotowe do odbioru":""}${z.status==="Odebrane"?" · odebrane":""}</small>${z.uwagi?`<i>${esc(z.uwagi)}</i>`:""}</div>`; };
+    return `<div class="pp-it"><b><span class="pp-box"></span>${esc(we+supName(z.podw))}</b><span>${esc([projOf(z),z.opis].filter(Boolean).join(" · "))}</span><small>${esc([z.ilosc!=null&&z.ilosc!==""?z.ilosc+" szt.":"",z.rodzaj].filter(Boolean).join(" · "))}${z.status==="Gotowe do odbioru"?" · gotowe do odbioru":""}${z.status==="Odebrane"?" · odebrane":""}${z.naszMat?" · z naszego materiału":""}</small>${z.uwagi?`<i>${esc(z.uwagi)}</i>`:""}</div>`; };
   const cols=dni.map((d,i)=>{ const L=list.filter(z=> i===4? z.data>=d : z.data===d); return `<div><h4>${DNI_K[pd(d).getDay()].replace(/^./,c=>c.toUpperCase())} ${fDs(d)}</h4>${L.map(it).join("")||'<div class="pp-it"><small>brak odbiorów</small></div>'}</div>`; }).join("");
   $("printArea").innerHTML=`<div class="pp"><div class="pp-h"><div><b>Odbiory z kooperacji · tydzień ${isoWeek(wkStart)}</b><span>${fDs(wkStart)} – ${fD(dni[4])} · ${wkSup?esc(supName(wkSup)):"wszyscy podwykonawcy"} · ${list.length} ${plural(list.length,"odbiór","odbiory","odbiorów")}</span></div><div class="pp-m">Wydrukował: ${esc(me.nazwa||me.login)}<br>${fD(today())}</div></div><div class="pp-g">${cols}</div><div class="pp-f">Kooperacje · plan odbiorów</div></div>`;
   window.print();
@@ -374,7 +378,7 @@ $("calDone").onchange=e=>{calDone=e.target.checked; renderCal();};
 $("wkPrev").onclick=()=>{wkStart=addD(wkStart,-7); renderWeek();}; $("wkNext").onclick=()=>{wkStart=addD(wkStart,7); renderWeek();};
 $("wkToday").onclick=()=>{wkStart=monday(today()); renderWeek();};
 $("wkSup").onchange=e=>{wkSup=e.target.value; renderWeek();}; $("wkShow").onchange=e=>{wkShow=e.target.value; renderWeek();};
-$("zSup").onchange=e=>{zSup=e.target.value; renderZ();}; $("zStatus").onchange=e=>{zStatus=e.target.value; renderZ();};
+$("zSup").onchange=e=>{zSup=e.target.value; renderZ();}; $("zMat").onchange=e=>{zMat=e.target.value; renderZ();}; $("zStatus").onchange=e=>{zStatus=e.target.value; renderZ();};
 $("zQ").oninput=e=>{zQ=e.target.value; renderZ();}; $("zClosed").onchange=e=>{zClosed=e.target.checked; renderZ();};
 $("btnCsv").onclick=exportCsv; $("zNoAmtX").onclick=()=>{ zNoAmt=false; renderZ(); };
 
@@ -475,16 +479,20 @@ export let zId=null, zWersja=0;
 export let zBaza=null;   // zlecenie przy otwarciu formularza – do łączenia zmian
 export function fillZ(v){
   $("z_data").value=v.data||""; $("z_podw").value=v.podw||""; $("z_nr").value=v.nr||""; $("z_rodzaj").value=v.rodzaj||"";
-  $("z_opis").value=v.opis||""; $("z_ilosc").value=v.ilosc??""; $("z_status").value=v.status||"Zlecone"; $("z_odebrano").value=v.odebrano||""; $("z_uwagi").value=v.uwagi||"";
+  $("z_opis").value=v.opis||""; $("z_ilosc").value=v.ilosc??""; $("z_status").value=normStatus(v.status); $("z_odebrano").value=v.odebrano||""; $("z_uwagi").value=v.uwagi||"";
   $("z_wartosc").value=zId && V[zId]?.wartosc!=null ? V[zId].wartosc : "";
   $("z_dolog").checked=!!v.doLog;
+  $("z_naszmat").checked=!!v.naszMat;
+  zStatusSel=$("z_status").value;
 }
 export function openZ(id, preset){
   const z = id? Z.find(x=>x.id===id) : null;
   if(!z && !canWrite) return;
   if(!P.length && !z){ toast("Najpierw trzeba dodać podwykonawców (zakładka Podwykonawcy)"); setTab("podwykonawcy"); return; }
   zId=id; zWersja=z?.wersja||0; zBaza = z? JSON.parse(JSON.stringify(z)) : null;
-  const v = z || {data:preset.data||today(), podw:preset.podw||sortedP()[0]?.id, status:"Zlecone", doLog:true};
+  const v = z || {data:preset.data||today(), podw:preset.podw||sortedP()[0]?.id, status:STATUS_START, doLog:true};
+  // status sprzed „Odebrane” – wraca, gdy ktoś skasuje datę odbioru
+  zPrev = z? (normStatus(z.status)!=="Odebrane"? normStatus(z.status) : normStatus(z.statusPrzed)) : STATUS_START;
   $("zTitle").textContent = z? "Zlecenie "+(z.nr||fD(z.data)) : "Nowe zlecenie";
   $("z_podw").innerHTML=sortedP().map(p=>`<option value="${p.id}">${esc(p.nazwa)}</option>`).join("");
   const rs=[...new Set([...rodzaje, v.rodzaj].filter(Boolean))];
@@ -515,10 +523,22 @@ export async function loadAudit(z){
       return `<li>${fTs(h.kiedy)} · <b>${esc(h.nazwa)}</b> · ${h.akcja==="utworzenie"?"dodał(a) zlecenie":esc(ch)}</li>`; }).join("") || "<li>Brak wpisów.</li>";
   }catch(x){ box.querySelector("ul").innerHTML=`<li>Nie udało się wczytać historii.</li>`; }
 }
-$("z_status").onchange=e=>{ if(e.target.value==="Odebrane" && !$("z_odebrano").value) $("z_odebrano").value=today(); };
+// data odbioru ↔ status: wpisana data → „Odebrane”, skasowana → poprzedni status; „Anulowane” zostaje
+export let zPrev=STATUS_START, zStatusSel=STATUS_START;
+$("z_status").onchange=e=>{
+  const st=e.target.value;
+  if(st==="Odebrane"){ if(zStatusSel!=="Odebrane" && zStatusSel!=="Anulowane") zPrev=zStatusSel; if(!$("z_odebrano").value) $("z_odebrano").value=today(); }
+  else if(st!=="Anulowane"){ zPrev=st; $("z_odebrano").value=""; }
+  zStatusSel=st;
+};
+$("z_odebrano").addEventListener("change",()=>{
+  const st=$("z_status").value, nowy=statusPoDacie(st, $("z_odebrano").value, zPrev);
+  if(nowy==="Odebrane" && st!=="Odebrane") zPrev=normStatus(st);
+  $("z_status").value=nowy; zStatusSel=nowy;
+});
 export function readZ(){
   return { data:$("z_data").value, podw:$("z_podw").value, nr:$("z_nr").value.trim(), rodzaj:$("z_rodzaj").value, opis:$("z_opis").value.trim(),
-    ilosc: $("z_ilosc").value===""? null : Math.round(+$("z_ilosc").value), status:$("z_status").value, odebrano:$("z_odebrano").value, uwagi:$("z_uwagi").value.trim(), doLog:$("z_dolog").checked };
+    ilosc: $("z_ilosc").value===""? null : Math.round(+$("z_ilosc").value), status:$("z_status").value, odebrano:$("z_odebrano").value, uwagi:$("z_uwagi").value.trim(), doLog:$("z_dolog").checked, naszMat:$("z_naszmat").checked };
 }
 export let forceNext=false;
 // Enter w polach jednowierszowych nie zapisuje zlecenia (w opisie i uwagach – nowa linia); zapis tylko przyciskiem „Zapisz”
@@ -532,6 +552,8 @@ $("fZ").addEventListener("submit", async e=>{
     (canSeeAmounts() && amountRaw!=="" && (!Number.isFinite(amount)||amount<0))? "Wpisz prawidłową, nieujemną wartość zamówienia." : "";
   if(err){ $("zErr").textContent=err; $("zErr").hidden=false; return; }
   if(d.status==="Odebrane" && !d.odebrano) d.odebrano=today();
+  d.status=statusPoDacie(d.status, d.odebrano, zPrev);
+  d.statusPrzed = d.status==="Odebrane"? normStatus(zPrev) : "";
   const proj=await resolveProject(d); if(proj===null) return;
   d.projekt=proj;
   $("zSave").disabled=true;
@@ -581,7 +603,7 @@ $("zDelYes").onclick=async()=>{
 };
 export async function markStatus(id, status){
   const z=Z.find(x=>x.id===id); if(!z) return;
-  const d={}; for(const k of POLA) d[k]=z[k]??(k==="ilosc"?null:""); d.status=status; if(status==="Odebrane") d.odebrano=today();
+  const d={}; for(const k of POLA) d[k]=z[k]??(k==="ilosc"?null:""); d.status=status; if(status==="Odebrane"){ d.odebrano=today(); d.statusPrzed=normStatus(z.status); }
   try{ const r=await saveZ(id,d,z.wersja||0,false,z);
     if(r.conflict){ toast("Ktoś właśnie zmienił to zlecenie – otwórz je i sprawdź"); return; }
     toast(status==="Odebrane"?"Oznaczono jako odebrane":"Oznaczono: gotowe do odbioru"); }catch(x){ failed(x); }
@@ -618,7 +640,7 @@ $("btnOut").onclick=doOut; $("msgOut").onclick=doOut;
 export function stopSubs(){ subs.forEach(u=>{try{u();}catch{}}); subs=[]; }
 export function startData(){
   const lost=x=>{ console.warn(x); note(x&&x.code==="permission-denied"? "Baza odmawia dostępu do Kooperacji. Administrator musi dodać reguły Kooperacji w Firebase (instrukcja, krok 1)." : "Utracono połączenie z bazą. Odśwież stronę.", true); };
-  subs.push(onSnapshot(collection(db,C.z), s=>{ Z=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
+  subs.push(onSnapshot(collection(db,C.z), s=>{ Z=s.docs.map(d=>{ const x={id:d.id,...d.data()}; x.status=normStatus(x.status); return x; }); render(); }, lost));
   subs.push(onSnapshot(collection(db,C.p), s=>{ P=s.docs.map(d=>({id:d.id,...d.data()})); render(); }, lost));
   PROJ=[];
   subs.push(onSnapshot(collection(db,"projekty"), s=>{ PROJ=s.docs.map(d=>d.data()); }, x=>console.warn(x)));
